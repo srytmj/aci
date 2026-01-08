@@ -1,4 +1,6 @@
 <x-app-layout>
+        @section('title', 'Data Termin')
+
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
             Update Termin: {{ $termin->nama_proyek }}

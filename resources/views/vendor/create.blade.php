@@ -1,4 +1,6 @@
 <x-app-layout>
+    @section('title', 'Buat Data Vendor')
+
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
             {{ __('Tambah Vendor') }}
@@ -9,7 +11,7 @@
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
             <div
                 class="bg-white dark:bg-gray-800 shadow-2xl rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700">
-                
+
                 <div class="bg-indigo-500 px-6 py-4 text-white font-bold text-lg">
                     Tambah Data Vendor
                 </div>
@@ -64,7 +66,7 @@
                             Batal
                         </a>
                         <button type="submit"
-                        class="px-8 py-2.5 rounded-xl bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition transform active:scale-95">
+                            class="px-8 py-2.5 rounded-xl bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition transform active:scale-95">
                             Simpan Vendor
                         </button>
                     </div>

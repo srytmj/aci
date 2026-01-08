@@ -1,4 +1,6 @@
 <x-app-layout>
+    @section('title', 'Edit Data Pemberi')
+
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
             {{ __('Edit Pemberi Proyek') }}

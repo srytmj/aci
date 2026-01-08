@@ -1,4 +1,6 @@
 <x-app-layout>
+    @section('title', 'Data Kas Masuk')
+
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
             {{ __('Transaksi Kas Masuk') }}
@@ -12,7 +14,7 @@
 
                 <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                     <div>
-                        <h3 class="text-lg font-bold text-gray-800 text-emerald-600">Penerimaan Kas</h3>
+                        <h3 class="text-lg font-bold text-gray-800 text-600">Penerimaan Kas</h3>
                         <p class="text-xs text-gray-500 font-medium">Monitoring dana masuk dari termin proyek & umum</p>
                     </div>
                     <a href="{{ route('kas-masuk.create') }}"
