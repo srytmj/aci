@@ -19,7 +19,7 @@ return new class extends Migration {
             ['nama_jabatan' => 'Karyawan'],
             ['nama_jabatan' => 'Proyek'],
             ['nama_jabatan' => 'Pembayaran'],
-            ['nama_jabatan' => 'Dokumen'],
+            // ['nama_jabatan' => 'Dokumen'],
             ['nama_jabatan' => 'Umum'],
         ]);
 
@@ -51,8 +51,11 @@ return new class extends Migration {
         });
 
         DB::table('users')->insert([
-            ['name' => 'admin', 'nama_lengkap' => 'Admin', 'email' => 'admin@admin.com', 'password' => Hash::make('12341234'), 'id_level' => 1, 'id_jabatan' => 1],
-            ['name' => 'user', 'nama_lengkap' => 'User', 'email' => 'user@user.com', 'password' => Hash::make('12341234'), 'id_level' => 2, 'id_jabatan' => 2],
+            ['name' => 'admin', 'email' => 'admin@admin.com', 'id_level' => 1, 'id_jabatan' => 5], // Admin (All)
+            ['name' => 'finance', 'email' => 'finance@test.com', 'id_level' => 2, 'id_jabatan' => 3], // Finance (COA, Transaksi, Jurnal)
+            ['name' => 'proyek', 'email' => 'proyek@test.com', 'id_level' => 2, 'id_jabatan' => 2], // Proyek (Proyek, Vendor)
+            ['name' => 'umum', 'email' => 'umum@test.com', 'id_level' => 2, 'id_jabatan' => 5], // Umum (Dashboard Only)
+            ['name' => 'karyawan', 'email' => 'karyawan@test.com', 'id_level' => 2, 'id_jabatan' => 1], // Karyawan (Dashboard Only)
         ]);
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
