@@ -1,4 +1,7 @@
 <x-guest-layout>
+    <title>SIM Konstruksi - Login</title>
+
+
     <div class="mb-8 text-center">
         <img src="{{ asset('images/logo.png') }}" alt="Logo"
             class="mx-auto w-20 h-20 object-contain mb-4 drop-shadow-md">
