@@ -32,7 +32,7 @@ class CoaController extends Controller
             'kode_akun' => 'required|unique:coa,kode_akun|max:20', // Cek unik di tabel coa kolom kode_akun
             'nama_akun' => 'required|max:150',
             'level' => 'required|integer',
-            'urutan' => 'required|integer',
+            'urutan' => 'required|integer|min:1',
         ], [
             // Pesan Error Kustom
             'kode_akun.unique' => 'Gagal! Kode Akun "' . $request->kode_akun . '" sudah terdaftar di sistem.',
@@ -72,7 +72,7 @@ class CoaController extends Controller
             'kode_akun' => 'required|max:20|unique:coa,kode_akun,' . $id . ',id_coa',
             'nama_akun' => 'required|max:150',
             'level' => 'required|integer',
-            'urutan' => 'required|integer',
+            'urutan' => 'required|integer|min:1',
         ], [
             'kode_akun.unique' => 'Gagal! Kode Akun "' . $request->kode_akun . '" sudah digunakan oleh akun lain.',
         ]);

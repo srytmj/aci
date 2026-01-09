@@ -13,7 +13,7 @@
 
                 <div
                     class="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/20">
-                    {{-- <h3 class="text-lg font-bold text-gray-800 dark:text-white">Master Data Vendor</h3> --}}
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-white">Daftar Rekanan Vendor</h3>
                     <a href="{{ route('vendor.create') }}"
                         class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-md">
                         + Tambah Vendor
@@ -23,6 +23,7 @@
                 <div class="p-6">
                     <table id="vendorTable" class="w-full cell-border stripe hover">
                         <thead>
+                            {{-- Baris 1: Judul Kolom --}}
                             <tr class="text-left text-gray-500 uppercase text-xs tracking-wider">
                                 <th>Nama Vendor</th>
                                 <th>Penanggung Jawab</th>
@@ -30,8 +31,22 @@
                                 <th>Kontak</th>
                                 <th class="text-center">Aksi</th>
                             </tr>
+                            {{-- Baris 2: Filter Input --}}
+                            <tr class="bg-gray-50 dark:bg-gray-900/50 filter-row">
+                                <th class="p-2">
+                                    <input type="text" placeholder="Cari Vendor..."
+                                        class="column-filter w-full text-[10px] rounded-lg border-gray-200 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 focus:ring-indigo-500">
+                                </th>
+                                <th class="p-2">
+                                    <input type="text" placeholder="Filter PJ..."
+                                        class="column-filter w-full text-[10px] rounded-lg border-gray-200 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 focus:ring-indigo-500">
+                                </th>
+                                <th class="p-2"></th>
+                                <th class="p-2"></th>
+                                <th class="p-2"></th>
+                            </tr>
                         </thead>
-                        <tbody class="text-gray-600 dark:text-gray-300">
+                        <tbody class="text-sm text-gray-600 dark:text-gray-300">
                             @foreach ($vendors as $v)
                                 <tr>
                                     <td class="font-bold text-gray-900 dark:text-white">{{ $v->nama }}</td>
@@ -44,7 +59,7 @@
                                     <td class="text-center">
                                         <div class="flex justify-center gap-2">
                                             <a href="{{ route('vendor.edit', $v->id_vendor) }}"
-                                                class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
+                                                class="p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -54,7 +69,7 @@
                                             </a>
                                             <button type="button"
                                                 onclick="deleteVendor('{{ $v->id_vendor }}', '{{ $v->nama }}')"
-                                                class="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition">
+                                                class="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -64,23 +79,14 @@
                                             </button>
                                             <form id="delete-form-{{ $v->id_vendor }}"
                                                 action="{{ route('vendor.destroy', $v->id_vendor) }}" method="POST"
-                                                class="hidden">@csrf @method('DELETE')</form>
+                                                class="hidden">
+                                                @csrf @method('DELETE')
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>
                             @endforeach
                         </tbody>
-                        <tfoot class="bg-gray-50 dark:bg-gray-900/50">
-                            <tr>
-                                <th class="p-2"><input type="text" placeholder="Filter Vendor"
-                                        class="w-full text-xs rounded-lg border-gray-200 focus:ring-indigo-500"></th>
-                                <th class="p-2"><input type="text" placeholder="Filter PJ"
-                                        class="w-full text-xs rounded-lg border-gray-200 focus:ring-indigo-500"></th>
-                                <th class="p-2"></th>
-                                <th class="p-2"></th>
-                                <th></th>
-                            </tr>
-                        </tfoot>
                     </table>
                 </div>
             </div>
@@ -88,44 +94,74 @@
     </div>
 
     <style>
-        .dataTables_wrapper .dataTables_length select {
-            padding-right: 2rem;
-            border-radius: 0.5rem;
+        .filter-row th {
+            background-image: none !important;
+            cursor: default !important;
         }
 
-        .dataTables_wrapper .dataTables_filter input {
-            border-radius: 0.5rem;
-            padding: 0.4rem 1rem;
-            border: 1px solid #e5e7eb;
+        .dataTables_wrapper .dataTables_filter {
+            display: none;
         }
 
-        table.dataTable {
-            border-collapse: collapse !important;
-            width: 100% !important;
-            margin-bottom: 2rem !important;
-        }
-
+        /* Pakai filter custom saja */
         table.dataTable thead th {
             background-color: #f9fafb;
             border-bottom: 1px solid #f3f4f6 !important;
+        }
+
+        .dark table.dataTable thead th {
+            background-color: #111827;
+            border-bottom: 1px solid #374151 !important;
+            color: #9ca3af;
         }
     </style>
 
     <script>
         $(document).ready(function() {
+            // 1. Inisialisasi DataTable
             var table = $('#vendorTable').DataTable({
                 responsive: true,
-                "dom": '<"flex flex-col md:flex-row justify-between items-center mb-4 gap-4"lfr>t<"flex flex-col md:flex-row justify-between items-center mt-4 gap-4"ip>',
+                orderCellsTop: true, // Kunci: baris sorting ada di paling atas
+                dom: '<"flex justify-between items-center mb-4"l>t<"flex justify-between items-center mt-4"ip>',
             });
-            table.columns().every(function() {
-                var that = this;
-                $('input', this.footer()).on('keyup change', function() {
-                    if (that.search() !== this.value) {
-                        that.search(this.value).draw();
+
+            // 2. Logika Search Otomatis per Kolom
+            $('#vendorTable thead .filter-row th').each(function(i) {
+                $('input', this).on('keyup input change clear', function(e) {
+                    // Stop sorting saat klik input
+                    e.stopPropagation();
+
+                    if (table.column(i).search() !== this.value) {
+                        table.column(i).search(this.value).draw();
                     }
+                });
+
+                // Biar nggak trigger sorting kalau input di-klik
+                $('input', this).on('click', function(e) {
+                    e.stopPropagation();
                 });
             });
         });
+
+        // 3. SweetAlert2 Flash Messages
+        @if (session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: "{{ session('success') }}",
+                timer: 2500,
+                showConfirmButton: false
+            });
+        @endif
+
+        @if (session('error') || $errors->any())
+            Swal.fire({
+                icon: 'error',
+                title: 'Waduh!',
+                text: "{{ session('error') ?? 'Ada masalah saat memproses data.' }}",
+                confirmButtonColor: '#4f46e5'
+            });
+        @endif
 
         function deleteVendor(id, name) {
             Swal.fire({

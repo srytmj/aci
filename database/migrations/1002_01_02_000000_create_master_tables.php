@@ -43,9 +43,9 @@ return new class extends Migration {
         });
 
         DB::table('proyek')->insert([
-            ['nama' => 'Proyek 1', 'id_pemberi' => 1, 'nilai_kontrak' => 1000000, 'jumlah_termin' => 1, 'tanggal_mulai' => '2026-01-01', 'tanggal_selesai' => '2026-01-01', 'status' => 'aktif', 'deskripsi' => 'Proyek 1'],
-            ['nama' => 'Proyek 2', 'id_pemberi' => 2, 'nilai_kontrak' => 2000000, 'jumlah_termin' => 2, 'tanggal_mulai' => '2026-01-01', 'tanggal_selesai' => '2026-01-01', 'status' => 'aktif', 'deskripsi' => 'Proyek 2'],
-            ['nama' => 'Proyek 3', 'id_pemberi' => 3, 'nilai_kontrak' => 3000000, 'jumlah_termin' => 3, 'tanggal_mulai' => '2026-01-01', 'tanggal_selesai' => '2026-01-01', 'status' => 'nonaktif', 'deskripsi' => 'Proyek 3'],
+            ['nama' => 'Proyek 1', 'id_pemberi' => 1, 'nilai_kontrak' => 1000000, 'jumlah_termin' => 1, 'tanggal_mulai' => '2026-01-01', 'tanggal_selesai' => '2026-01-31', 'status' => 'selesai', 'deskripsi' => 'Proyek 1'],
+            ['nama' => 'Proyek 2', 'id_pemberi' => 2, 'nilai_kontrak' => 2000000, 'jumlah_termin' => 2, 'tanggal_mulai' => '2026-01-01', 'tanggal_selesai' => '2026-02-28', 'status' => 'aktif', 'deskripsi' => 'Proyek 2'],
+            ['nama' => 'Proyek 3', 'id_pemberi' => 3, 'nilai_kontrak' => 3000000, 'jumlah_termin' => 3, 'tanggal_mulai' => '2026-01-01', 'tanggal_selesai' => '2026-03-31', 'status' => 'aktif', 'deskripsi' => 'Proyek 3'],
         ]);
 
         // Tabel Vendor
@@ -78,77 +78,96 @@ return new class extends Migration {
             ['nama_metode_bayar' => 'Bank', 'deskripsi' => 'Bank'],
         ]);
 
-        // Kategori Kas Masuk
-        Schema::create('kategori_kas_masuk', function (Blueprint $table) {
-            $table->id('id_kategori_masuk');
+        Schema::create('kategori_kas', function (Blueprint $table) {
+            $table->id('id_kategori'); // Satu PK untuk semua
             $table->string('nama_kategori', 100);
+            $table->enum('arus', ['masuk', 'keluar']); // Pembeda arus kas
+            $table->enum('jenis', ['proyek', 'non-proyek']); // Pembeda klasifikasi
             $table->text('deskripsi')->nullable();
+
+            // Mapping COA
             $table->foreignId('id_coa_debit')->nullable()->constrained('coa', 'id_coa');
             $table->foreignId('id_coa_kredit')->nullable()->constrained('coa', 'id_coa');
+
             $table->timestamps();
         });
 
-        DB::table('kategori_kas_masuk')->insert([
+        // 2. Insert Data Seeding (Gabungan Masuk & Keluar)
+        DB::table('kategori_kas')->insert([
+            // --- KATEGORI KAS MASUK ---
             [
                 'nama_kategori' => 'Pembayaran Proyek - Termin',
-                'id_coa_debit' => 12, // Kas Besar
-                'id_coa_kredit' => 39, // Termin Proyek Pemerintah
-                'deskripsi' => 'Pembayaran berdasarkan progres pekerjaan'
+                'arus' => 'masuk',
+                'jenis' => 'proyek',
+                'id_coa_debit' => 12,
+                'id_coa_kredit' => 39,
+                'deskripsi' => 'Pembayaran berdasarkan progres pekerjaan',
+                'created_at' => now(),
             ],
             [
                 'nama_kategori' => 'Pembayaran Proyek - Uang Muka',
-                'id_coa_debit' => 12, // Kas Besar
-                'id_coa_kredit' => 23, // Uang Muka Proyek (Liabilitas/Pendapatan Diterima Dimuka)
-                'deskripsi' => 'Pembayaran awal proyek'
+                'arus' => 'masuk',
+                'jenis' => 'proyek',
+                'id_coa_debit' => 12,
+                'id_coa_kredit' => 23,
+                'deskripsi' => 'Pembayaran awal proyek',
+                'created_at' => now(),
             ],
             [
                 'nama_kategori' => 'Penambahan Modal',
-                'id_coa_debit' => 12, // Kas Besar
-                'id_coa_kredit' => 36, // Tambahan Modal
-                'deskripsi' => 'Setoran modal dari pemilik'
+                'arus' => 'masuk',
+                'jenis' => 'non-proyek',
+                'id_coa_debit' => 12,
+                'id_coa_kredit' => 36,
+                'deskripsi' => 'Setoran modal dari pemilik',
+                'created_at' => now(),
             ],
             [
                 'nama_kategori' => 'Piutang Bank',
-                'id_coa_debit' => 12, // Kas Besar
-                'id_coa_kredit' => 33, // Pinjaman Bank
-                'deskripsi' => 'Pencairan dana dari pinjaman bank'
+                'arus' => 'masuk',
+                'jenis' => 'non-proyek',
+                'id_coa_debit' => 12,
+                'id_coa_kredit' => 33,
+                'deskripsi' => 'Pencairan dana dari pinjaman bank',
+                'created_at' => now(),
             ],
-        ]);
 
-        // 2. Kategori Kas Keluar
-        Schema::create('kategori_kas_keluar', function (Blueprint $table) {
-            $table->id('id_kategori_keluar');
-            $table->string('nama_kategori', 100);
-            $table->text('deskripsi')->nullable();
-            $table->foreignId('id_coa_debit')->nullable()->constrained('coa', 'id_coa');
-            $table->foreignId('id_coa_kredit')->nullable()->constrained('coa', 'id_coa');
-            $table->timestamps();
-        });
-
-        DB::table('kategori_kas_keluar')->insert([
+            // --- KATEGORI KAS KELUAR ---
             [
                 'nama_kategori' => 'Pembelian Material',
-                'id_coa_debit' => 43, // Pembelian Material Proyek
-                'id_coa_kredit' => 12, // Kas Besar
-                'deskripsi' => 'Pembelian barang/bahan ke vendor'
+                'arus' => 'keluar',
+                'jenis' => 'proyek',
+                'id_coa_debit' => 43,
+                'id_coa_kredit' => 12,
+                'deskripsi' => 'Pembelian barang/bahan ke vendor',
+                'created_at' => now(),
             ],
             [
                 'nama_kategori' => 'Tenaga Kerja Proyek',
-                'id_coa_debit' => 45, // Gaji Tenaga Kerja Proyek
-                'id_coa_kredit' => 12, // Kas Besar
-                'deskripsi' => 'Pembayaran tukang, mandor, pekerja lapangan'
+                'arus' => 'keluar',
+                'jenis' => 'proyek',
+                'id_coa_debit' => 45,
+                'id_coa_kredit' => 12,
+                'deskripsi' => 'Pembayaran tukang, mandor, pekerja lapangan',
+                'created_at' => now(),
             ],
             [
                 'nama_kategori' => 'Tenaga Kerja Kantor',
-                'id_coa_debit' => 50, // Gaji Staf Kantor
-                'id_coa_kredit' => 12, // Kas Besar
-                'deskripsi' => 'Gaji administratif kantor / staf internal'
+                'arus' => 'keluar',
+                'jenis' => 'non-proyek',
+                'id_coa_debit' => 50,
+                'id_coa_kredit' => 12,
+                'deskripsi' => 'Gaji administratif kantor / staf internal',
+                'created_at' => now(),
             ],
             [
                 'nama_kategori' => 'Operasional Proyek',
-                'id_coa_debit' => 47, // Transport Proyek
-                'id_coa_kredit' => 12, // Kas Besar
-                'deskripsi' => 'Transportasi, ATK, listrik lapangan, dll.'
+                'arus' => 'keluar',
+                'jenis' => 'proyek',
+                'id_coa_debit' => 47,
+                'id_coa_kredit' => 12,
+                'deskripsi' => 'Transportasi, ATK, listrik lapangan, dll.',
+                'created_at' => now(),
             ],
         ]);
 
@@ -164,6 +183,22 @@ return new class extends Migration {
             ['nama_termin' => 'Termin', 'deskripsi' => 'Pembayaran progres berdasarkan persentase'],
             ['nama_termin' => 'Full Payment', 'deskripsi' => 'Pelunasan nilai kontrak 100%'],
         ]);
+
+        Schema::create('realisasi_anggaran', function (Blueprint $table) {
+            $table->id('id_realisasi_anggaran');
+            $table->string('nama_realisasi', 100);
+            $table->integer('presentase');
+            $table->text('deskripsi')->nullable();
+            $table->timestamps();
+        });
+
+        DB::table('realisasi_anggaran')->insert([
+            ['nama_realisasi' => 'Uang Muka', 'presentase' => 10, 'deskripsi' => 'Pembayaran awal sebelum pekerjaan'],
+            ['nama_realisasi' => '10%', 'presentase' => 10, 'deskripsi' => 'Pembayaran progres berdasarkan persentase'],
+            ['nama_realisasi' => '20%', 'presentase' => 20, 'deskripsi' => 'Pembayaran progres berdasarkan persentase'],
+            ['nama_realisasi' => '30%', 'presentase' => 30, 'deskripsi' => 'Pembayaran progres berdasarkan persentase'],
+            ['nama_realisasi' => '40%', 'presentase' => 40, 'deskripsi' => 'Pembayaran progres berdasarkan persentase'],
+        ]);
     }
 
     /**
@@ -175,8 +210,8 @@ return new class extends Migration {
         Schema::dropIfExists('pemberi_proyek');
         Schema::dropIfExists('vendor');
         Schema::dropIfExists('metode_bayar');
-        Schema::dropIfExists('kategori_kas_masuk');
-        Schema::dropIfExists('kategori_kas_keluar');
+        Schema::dropIfExists('kategori_kas');
         Schema::dropIfExists('tipe_termin');
+        Schema::dropIfExists('realisasi_anggaran');
     }
 };

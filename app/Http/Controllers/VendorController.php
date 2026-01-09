@@ -20,6 +20,9 @@ class VendorController extends Controller
         $request->validate([
             'nama' => 'required|max:150',
             'penanggung_jawab' => 'required|max:255',
+            'alamat' => 'required|max:255',
+            'no_telp' => 'required|numeric|max:255',
+            'email' => 'required|email|max:255',
         ]);
 
         DB::table('vendor')->insert([
@@ -41,6 +44,14 @@ class VendorController extends Controller
     }
 
     public function update(Request $request, $id) {
+        $request->validate([
+            'nama' => 'required|max:150',
+            'penanggung_jawab' => 'required|max:255',
+            'alamat' => 'required|max:255',
+            'no_telp' => 'required|numeric|max:255',
+            'email' => 'required|email|max:255',
+        ]);
+
         DB::table('vendor')->where('id_vendor', $id)->update([
             'nama' => $request->nama,
             'alamat' => $request->alamat,

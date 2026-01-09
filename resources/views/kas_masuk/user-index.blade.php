@@ -15,7 +15,7 @@
                         <h3 class="text-lg font-bold text-gray-800 text-emerald-600">Data Penerimaan Kas</h3>
                         <p class="text-xs text-gray-500 font-medium">Monitoring seluruh dana masuk termin & umum</p>
                     </div>
-                    </div>
+                </div>
 
                 <div class="p-6">
                     <table id="kasMasukTable" class="w-full cell-border stripe hover">
@@ -26,13 +26,14 @@
                                 <th>Kategori & Proyek</th>
                                 <th>Metode</th>
                                 <th>Nominal</th>
-                                <th class="text-center">Detail</th> </tr>
+                                <th class="text-center">Detail</th>
+                            </tr>
                         </thead>
                         <tbody class="text-sm">
                             @foreach ($kas_masuks as $k)
                                 <tr>
                                     <td class="font-mono font-bold text-indigo-600">{{ $k->no_form }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($k->tanggal_masuk)->format('d/m/Y') }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($k->tanggal)->format('d/m/Y') }}</td>
                                     <td>
                                         <div class="font-bold text-gray-800">{{ $k->nama_kategori }}</div>
                                         <div class="text-[10px] text-gray-400 uppercase leading-none italic">
@@ -50,14 +51,13 @@
                                     </td>
                                     <td class="text-center">
                                         <div class="flex justify-center">
-                                            <a href="{{ route('kas-masuk.show', $k->id_kas_masuk) }}"
+                                            <a href="{{ route('kas-masuk.show', $k->id_kas) }}"
                                                 class="p-2 text-gray-500 hover:bg-gray-100 hover:text-emerald-600 rounded-lg transition"
                                                 title="Lihat Detail">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                     <path stroke-linecap="round" stroke-linejoin="round"
                                                         stroke-width="2"
                                                         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />

@@ -2,98 +2,147 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
-use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
     public function index()
     {
-        // Ambil data user lengkap dengan nama jabatan dan levelnya
+        // Cukup ambil data user dasar, jangan di-join ke tabel akses di sini
         $users = DB::table('users')
-            ->leftJoin('user_jabatan', 'users.id_jabatan', '=', 'user_jabatan.id_jabatan')
-            ->leftJoin('user_level', 'users.id_level', '=', 'user_level.id_level')
-            ->select(
-                'users.*',
-                'user_jabatan.nama_jabatan',
-                'user_level.nama_level'
-            )
-            ->orderBy('users.created_at', 'desc')
-            ->get(); // Pakai get() karena pagination bakal dihandle sama DataTable di sisi client
+            ->select('id', 'name', 'nama_lengkap', 'email')
+            ->orderBy('id', 'desc')
+            ->get();
 
         return view('users.index', compact('users'));
     }
 
     public function create()
     {
-        $jabatans = DB::table('user_jabatan')->get();
-        $levels = DB::table('user_level')->get();
-        return view('users.create', compact('jabatans', 'levels'));
+        $akses = DB::table('akses')->get();
+        return view('users.create', compact('akses'));
     }
 
+    /**
+     * Menyimpan data user baru ke database
+     */
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|unique:users,name',
+            'nama_lengkap' => 'required',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|confirmed|min:8',
-            'id_jabatan' => 'required',
-            'id_level' => 'required',
+            'id_akses' => 'required|array', // Validasi harus pilih minimal 1
+            'password' => 'required|min:8|confirmed',
         ]);
 
-        User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'id_jabatan' => $request->id_jabatan, // Simpan ID-nya
-            'id_level' => $request->id_level,     // Simpan ID-nya
-        ]);
+        try {
+            DB::beginTransaction();
 
-        return redirect()->route('users.index')->with('success', 'Staff baru berhasil didaftarkan!');
+            // 1. Simpan ke tabel users
+            $userId = DB::table('users')->insertGetId([
+                'name' => $request->name,
+                'nama_lengkap' => $request->nama_lengkap,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // 2. Simpan ke tabel pivot user_akses
+            $dataAkses = [];
+            foreach ($request->id_akses as $id_akses) {
+                $dataAkses[] = [
+                    'user_id' => $userId,
+                    'id_akses' => $id_akses,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+            DB::table('user_akses')->insert($dataAkses);
+
+            DB::commit();
+            return redirect()->route('users.index')->with('success', 'User dan hak akses berhasil dibuat!');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal menyimpan data: ' . $e->getMessage())->withInput();
+        }
     }
 
-    public function edit(User $user)
+    public function edit($id)
     {
-        $jabatans = DB::table('user_jabatan')->get();
-        $levels = DB::table('user_level')->get();
-        return view('users.edit', compact('user', 'jabatans', 'levels'));
+        $user = DB::table('users')->where('id', $id)->first();
+        if (!$user)
+            return redirect()->route('users.index')->with('error', 'User tidak ditemukan');
+
+        $akses = DB::table('akses')->get();
+        return view('users.edit', compact('user', 'akses'));
     }
 
-    public function update(Request $request, User $user)
+    public function update(Request $request, $id)
     {
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'nama_lengkap' => 'required|string|max:255',
+            'name' => 'required|string|max:255|unique:users,name,' . $id,
+            'email' => 'required|string|email|max:255|unique:users,email,' . $id,
+            'password' => 'nullable|confirmed|min:8',
+            'id_akses' => 'required|array|min:1',
         ]);
 
-        $user->update([
-            'name' => $request->name,
-            'email' => $request->email,
-        ]);
-
-        if ($request->filled('password')) {
-            $request->validate(['password' => ['confirmed', Rules\Password::defaults()]]);
-            $user->update(['password' => Hash::make($request->password)]);
-        }
-
-        return redirect()->route('users.index')->with('success', 'Data user berhasil diupdate!');
-    }
-
-    public function destroy(User $user)
-    {
         try {
-            // Cegah hapus diri sendiri
-            if ($user->id === auth()->id()) {
-                return redirect()->route('users.index')->with('error', 'Nggak bisa hapus akun sendiri!');
+            DB::beginTransaction();
+
+            // 1. Update data dasar user
+            $updateData = [
+                'nama_lengkap' => $request->nama_lengkap,
+                'name' => $request->name,
+                'email' => $request->email,
+                'updated_at' => now(),
+            ];
+
+            if ($request->filled('password')) {
+                $updateData['password'] = Hash::make($request->password);
             }
 
-            $user->delete();
+            DB::table('users')->where('id', $id)->update($updateData);
+
+            // 2. Sync Hak Akses (Hapus lama, Insert baru)
+            DB::table('user_akses')->where('user_id', $id)->delete();
+
+            $dataAkses = [];
+            foreach ($request->id_akses as $id_akses) {
+                $dataAkses[] = [
+                    'user_id' => $id,
+                    'id_akses' => $id_akses,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+            DB::table('user_akses')->insert($dataAkses);
+
+            DB::commit();
+            return redirect()->route('users.index')->with('success', 'Data user berhasil diperbarui!');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', 'Gagal memperbarui data: ' . $e->getMessage());
+        }
+    }
+
+    // destroy
+    public function destroy($id)
+    {
+        try {
+            // Karena pakai ON DELETE CASCADE di database, 
+            // data di user_akses otomatis terhapus saat user dihapus.
+            DB::table('users')->where('id', $id)->delete();
             return redirect()->route('users.index')->with('success', 'User berhasil dihapus!');
         } catch (\Exception $e) {
-            return redirect()->route('users.index')->with('error', 'Gagal menghapus user: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menghapus user: ' . $e->getMessage());
         }
     }
 }

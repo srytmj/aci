@@ -38,7 +38,7 @@
                             class="w-full rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-500">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-widest">Penanggung
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-widest">Nama Penanggung
                             Jawab</label>
                         <input type="text" name="penanggung_jawab" required
                             class="w-full rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-500">
@@ -46,7 +46,7 @@
                     <div>
                         <label class="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-widest">Nomor
                             Telepon</label>
-                        <input type="text" name="no_telp"
+                        <input type="number" name="no_telp"
                             class="w-full rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-500">
                     </div>
                     <div class="col-span-2">
@@ -66,4 +66,45 @@
             </div>
         </div>
     </div>
+
+    {{-- Script SweetAlert2 --}}
+    <script>
+        // Alert untuk pesan Sukses
+        @if (session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: "{{ session('success') }}",
+                timer: 3000,
+                showConfirmButton: false,
+                timerProgressBar: true
+            });
+        @endif
+
+        // Alert untuk pesan Error (Gagal Simpan)
+        @if (session('error'))
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal!',
+                text: "{{ session('error') }}",
+                confirmButtonColor: '#4f46e5'
+            });
+        @endif
+
+        // Alert untuk Error Validasi (Inputan salah)
+        @if ($errors->any())
+            Swal.fire({
+                icon: 'warning',
+                title: 'Data Tidak Valid!',
+                html: `
+                    <div class="text-left text-sm">
+                        @foreach ($errors->all() as $error)
+                            <p>• {{ $error }}</p>
+                        @endforeach
+                    </div>
+                `,
+                confirmButtonColor: '#4f46e5'
+            });
+        @endif
+    </script>
 </x-app-layout>

@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\AksesController;
 use App\Http\Controllers\PemberiProyekController;
 use App\Http\Controllers\ProyekController;
 use App\Http\Controllers\TerminProyekController;
@@ -29,6 +30,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Resource Route buat User
     Route::resource('users', UserController::class);
+    Route::resource('akses', AksesController::class);
 
     Route::resource('pemberi', PemberiProyekController::class);
 
@@ -36,19 +38,21 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('termin', TerminProyekController::class);
     Route::resource('vendor', VendorController::class);
     Route::resource('coa', CoaController::class);
-
-    Route::get('/kategori/delete/{id}/{jenis}', [KategoriKasController::class, 'destroy'])->name('kategori.destroy');
-    Route::get('/kategori/{id}/edit/{jenis}', [KategoriKasController::class, 'edit'])->name('kategori.edit');
     Route::resource('kategori', KategoriKasController::class);
 
     // Transaksi
     Route::resource('kas-masuk', KasMasukController::class);
-    Route::get('/get-termin-by-proyek/{id}', [KasMasukController::class, 'getTerminByProyek']);
 
+    Route::get('/api/proyek/{id}/termin', [App\Http\Controllers\KasMasukController::class, 'getTerminByProyek']);
+    
     Route::resource('kas-keluar', KasKeluarController::class);
 
     Route::resource('jurnal', JurnalUmumController::class);
 
+    Route::post('/switch-role', function (Illuminate\Http\Request $request) {
+        session(['active_role_id' => $request->id_akses]);
+        return back()->with('success', 'Akses dialihkan');
+    })->name('switch.role');
 
 });
 

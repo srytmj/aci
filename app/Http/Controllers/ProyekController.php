@@ -66,6 +66,8 @@ class ProyekController extends Controller
                     'id_tipe_termin' => $id_tipe_default,
                     'nominal' => 0, // Set 0 dulu, nanti diedit admin
                     'keterangan' => 'Termin Ke-' . $i,
+                    'due_date' => $request->tanggal_selesai,
+                    'status_pembayaran' => 'Belum Dibayar',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);

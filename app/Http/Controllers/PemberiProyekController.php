@@ -22,22 +22,32 @@ class PemberiProyekController extends Controller
     {
         $request->validate([
             'jenis' => 'required',
-            'nama' => 'required|max:150',
-            'penanggung_jawab' => 'required|max:255',
+            'nama' => 'required|string|max:255',
+            'penanggung_jawab' => 'required|string|max:255',
+            'alamat' => 'required|string',
+            'no_telp' => 'required|numeric',
+            'email' => 'required|email',
         ]);
 
-        DB::table('pemberi_proyek')->insert([
-            'jenis' => $request->jenis,
-            'nama' => $request->nama,
-            'alamat' => $request->alamat ?? '-',
-            'penanggung_jawab' => $request->penanggung_jawab,
-            'no_telp' => $request->no_telp ?? '-',
-            'email' => $request->email ?? '-',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        try {
+            DB::table('pemberi_proyek')->insert([
+                'jenis' => $request->jenis,
+                'nama' => $request->nama,
+                'alamat' => $request->alamat,
+                'penanggung_jawab' => $request->penanggung_jawab,
+                'no_telp' => $request->no_telp,
+                'email' => $request->email,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
 
-        return redirect()->route('pemberi.index')->with('success', 'Data Pemberi Proyek berhasil ditambah!');
+            // Kirim sinyal sukses
+            return redirect()->route('pemberi.index')->with('success', 'Data Pemberi Proyek berhasil disimpan!');
+
+        } catch (\Exception $e) {
+            // Kirim sinyal error jika database bermasalah
+            return back()->withInput()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 
     public function edit($id)
@@ -48,17 +58,35 @@ class PemberiProyekController extends Controller
 
     public function update(Request $request, $id)
     {
-        DB::table('pemberi_proyek')->where('id_pemberi', $id)->update([
-            'jenis' => $request->jenis,
-            'nama' => $request->nama,
-            'alamat' => $request->alamat,
-            'penanggung_jawab' => $request->penanggung_jawab,
-            'no_telp' => $request->no_telp,
-            'email' => $request->email,
-            'updated_at' => now(),
+        $request->validate([
+            'jenis' => 'required',
+            'nama' => 'required|string|max:255',
+            'penanggung_jawab' => 'required|string|max:255',
+            'alamat' => 'required|string',
+            'no_telp' => 'required|numeric',
+            'email' => 'required|email',
         ]);
 
-        return redirect()->route('pemberi.index')->with('success', 'Data berhasil diupdate!');
+        try {
+            DB::table('pemberi_proyek')->where('id_pemberi', $id)->update([
+                'jenis' => $request->jenis,
+                'nama' => $request->nama,
+                'alamat' => $request->alamat,
+                'penanggung_jawab' => $request->penanggung_jawab,
+                'no_telp' => $request->no_telp,
+                'email' => $request->email,
+                'updated_at' => now(),
+            ]);
+
+            return redirect()->route('pemberi.index')->with('success', 'Data Pemberi Proyek berhasil diperbarui!');
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Menangkap error spesifik database (misal: duplikat entry atau constraint)
+            return back()->withInput()->with('error', 'Gagal update ke Database: ' . $e->getMessage());
+        } catch (\Exception $e) {
+            // Menangkap error umum lainnya
+            return back()->withInput()->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage());
+        }
     }
 
     public function destroy($id)

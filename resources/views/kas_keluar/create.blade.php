@@ -1,117 +1,130 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Input Pengeluaran Kas') }}
-        </h2>
-    </x-slot>
+    @section('title', 'Input Kas Keluar')
 
-    <div class="py-12">
+    <div class="py-12" x-data="{ 
+        isProyek: false,
+        kategoriUmum: @js($kategoriUmum),
+        kategoriProyek: @js($kategoriProyek),
+        kategoriAktif: @js($kategoriUmum),
+        nominal: '{{ old('nominal') }}',
+
+        handleProyekChange(id) {
+            if (id !== '') {
+                this.isProyek = true;
+                this.kategoriAktif = this.kategoriProyek;
+            } else {
+                this.isProyek = false;
+                this.kategoriAktif = this.kategoriUmum;
+            }
+        }
+    }" x-init="@if(old('id_proyek')) handleProyekChange('{{ old('id_proyek') }}') @endif">
+        
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white shadow-xl rounded-3xl overflow-hidden border border-rose-100">
-
-                <div class="bg-rose-600 px-8 py-6 text-white flex justify-between items-center">
-                    <div>
-                        <h3 class="text-xl font-bold italic tracking-tighter">FORM KAS KELUAR</h3>
-                        <p class="text-xs opacity-80">Catat pembayaran vendor, gaji, operasional, dll.</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-[10px] font-bold uppercase tracking-widest opacity-75">Saldo Anda Berkurang</p>
+            <div class="bg-white dark:bg-gray-800 shadow-2xl rounded-[2rem] overflow-hidden border border-gray-100 dark:border-gray-700">
+                
+                <div class="px-8 py-8 bg-gradient-to-br from-rose-600 to-red-700 text-white relative">
+                    <div class="relative z-10 flex justify-between items-center">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-[0.3em] opacity-70 mb-1">Formulir Pengeluaran</p>
+                            <h3 class="text-2xl font-black tracking-tighter uppercase">Kas Keluar</h3>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-[10px] font-bold opacity-70 uppercase">No. Referensi</span>
+                            <span class="text-xl font-mono font-bold">{{ $no_form }}</span>
+                        </div>
                     </div>
                 </div>
 
-                <form action="{{ route('kas-keluar.store') }}" method="POST" enctype="multipart/form-data"
-                    class="p-8">
+                <form action="{{ route('kas-keluar.store') }}" method="POST" enctype="multipart/form-data" class="p-8 md:p-10">
                     @csrf
+                    <input type="hidden" name="no_form" value="{{ $no_form }}">
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2">No. Dokumen</label>
-                            <input type="text" name="no_form" value="{{ $no_form }}" readonly
-                                class="w-full rounded-xl bg-gray-50 border-gray-200 font-mono font-bold text-rose-600">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Tanggal
-                                Transaksi</label>
-                            <input type="date" name="tanggal_keluar" value="{{ date('Y-m-d') }}" required
-                                class="w-full rounded-xl border-gray-200 focus:ring-rose-500">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-[11px] font-black text-gray-400 uppercase mb-2 tracking-widest">1. Alokasi Proyek (Opsional)</label>
+                            <select name="id_proyek" 
+                                @change="handleProyekChange($event.target.value)"
+                                class="w-full border-2 border-gray-100 rounded-2xl focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 font-bold text-gray-700 transition-all">
+                                <option value="">-- PENGELUARAN UMUM (NON-PROYEK) --</option>
+                                @foreach($proyek as $p)
+                                    <option value="{{ $p->id_proyek }}" {{ old('id_proyek') == $p->id_proyek ? 'selected' : '' }}>{{ $p->nama }}</option>
+                                @endforeach
+                            </select>
+                            <p class="mt-1 text-[10px] text-gray-400">Pilih proyek jika pengeluaran ini dibebankan ke proyek tertentu.</p>
                         </div>
 
-                        <div class="col-span-2">
-                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Kategori
-                                Pengeluaran</label>
-                            <select name="id_kategori_keluar" required
-                                class="w-full rounded-xl border-gray-200 focus:ring-rose-500">
-                                <option value="">-- Pilih Jenis Pengeluaran --</option>
-                                @foreach ($kategori as $k)
-                                    <option value="{{ $k->id_kategori_keluar }}">{{ $k->nama_kategori }} -
-                                        {{ $k->deskripsi }}</option>
+                        <div>
+                            <label class="block text-[11px] font-black text-gray-400 uppercase mb-2 tracking-widest">2. Kategori Pengeluaran</label>
+                            <select name="id_kategori" required 
+                                class="w-full border-2 border-gray-100 rounded-2xl focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 font-medium">
+                                <option value="">-- Pilih Kategori --</option>
+                                <template x-for="kat in kategoriAktif" :key="kat.id_kategori">
+                                    <option :value="kat.id_kategori" 
+                                            :selected="kat.id_kategori == '{{ old('id_kategori') }}'"
+                                            x-text="kat.nama_kategori"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-black text-gray-400 uppercase mb-2 tracking-widest">3. Tanggal Bayar</label>
+                            <input type="date" name="tanggal" required value="{{ old('tanggal', date('Y-m-d')) }}"
+                                class="w-full border-2 border-gray-100 rounded-2xl focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 font-bold">
+                        </div>
+
+                        <div class="md:col-span-2 border-t border-gray-50 my-2"></div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-[11px] font-black text-rose-500 uppercase mb-2 tracking-widest">4. Vendor / Penerima</label>
+                            <select name="id_vendor" 
+                                class="w-full border-2 border-rose-50 border-dashed bg-rose-50/30 rounded-2xl font-bold text-rose-700 focus:ring-4 focus:ring-rose-500/10">
+                                <option value="">-- Tanpa Vendor (Langsung) --</option>
+                                @foreach($vendor as $v)
+                                    <option value="{{ $v->id_vendor }}" {{ old('id_vendor') == $v->id_vendor ? 'selected' : '' }}>{{ $v->nama }}</option>
                                 @endforeach
                             </select>
                         </div>
 
-                        <div class="col-span-2 p-5 bg-rose-50 rounded-2xl border border-dashed border-rose-300">
-                            <p class="text-xs font-bold text-rose-500 uppercase mb-4 tracking-widest">Detail Peruntukan
-                                (Opsional)</p>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Untuk Proyek
-                                        Mana?</label>
-                                    <select name="id_proyek" class="w-full rounded-xl border-gray-200 text-sm">
-                                        <option value="">-- Umum / Non-Proyek --</option>
-                                        @foreach ($proyek as $p)
-                                            <option value="{{ $p->id_proyek }}">{{ $p->nama }}</option>
-                                        @endforeach
-                                    </select>
+                        <div class="md:col-span-2">
+                            <label class="block text-[11px] font-black text-gray-400 uppercase mb-2 tracking-widest">5. Nominal Pengeluaran</label>
+                            <div class="relative group">
+                                <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                                    <span class="text-gray-400 font-black text-sm">Rp</span>
                                 </div>
-                                <div>
-                                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Bayar Ke
-                                        Vendor Siapa?</label>
-                                    <select name="id_vendor" class="w-full rounded-xl border-gray-200 text-sm">
-                                        <option value="">-- Tidak Ada Vendor Khusus --</option>
-                                        @foreach ($vendor as $v)
-                                            <option value="{{ $v->id_vendor }}">{{ $v->nama }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
+                                <input type="number" name="nominal" x-model="nominal" required
+                                    class="w-full pl-12 pr-4 py-4 border-2 border-rose-100 rounded-2xl font-black text-2xl focus:ring-4 focus:ring-rose-500/10 transition-all outline-none text-rose-700">
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Metode
-                                Pembayaran</label>
-                            <select name="id_metode_bayar" required class="w-full rounded-xl border-gray-200">
-                                @foreach ($metode as $m)
-                                    <option value="{{ $m->id_metode_bayar }}">{{ $m->nama_metode_bayar }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Nominal Keluar
-                                (Rp)</label>
-                            <input type="number" name="nominal" required
-                                class="w-full rounded-xl border-gray-200 text-lg font-black text-rose-600 focus:ring-rose-500"
-                                placeholder="0">
+                        <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                            <div>
+                                <label class="block text-[11px] font-black text-gray-400 uppercase mb-2 tracking-widest text-center">Metode Pembayaran</label>
+                                <select name="id_metode_bayar" required class="w-full border-none rounded-xl font-bold shadow-sm">
+                                    @foreach($metode as $m)
+                                        <option value="{{ $m->id_metode_bayar }}" {{ old('id_metode_bayar') == $m->id_metode_bayar ? 'selected' : '' }}>
+                                            {{ $m->nama_metode_bayar }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-black text-gray-400 uppercase mb-2 tracking-widest text-center">Bukti Bayar (Nota/Struk)</label>
+                                <input type="file" name="upload_bukti" 
+                                    class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-rose-600 file:text-white hover:file:bg-rose-700 transition-all">
+                            </div>
                         </div>
 
-                        <div class="col-span-2">
-                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Keterangan /
-                                Keperluan</label>
-                            <textarea name="keterangan" rows="2" required class="w-full rounded-xl border-gray-200 focus:ring-rose-500"
-                                placeholder="Contoh: Pembelian semen 50 sak untuk cor lantai 2"></textarea>
-                        </div>
-                        <div class="col-span-2">
-                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Upload Bukti /
-                                Nota</label>
-                            <input type="file" name="upload_bukti"
-                                class="w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-rose-100 file:text-rose-700 hover:file:bg-rose-200 transition">
+                        <div class="md:col-span-2">
+                            <label class="block text-[11px] font-black text-gray-400 uppercase mb-2 tracking-widest">Keterangan Pengeluaran</label>
+                            <textarea name="keterangan" rows="3" required placeholder="Contoh: Pembelian material semen 50 sak..."
+                                class="w-full border-2 border-gray-100 rounded-2xl focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500">{{ old('keterangan') }}</textarea>
                         </div>
                     </div>
 
-                    <div class="mt-8 flex justify-end gap-3 pt-6 border-t border-gray-100">
-                        <a href="{{ route('kas-keluar.index') }}"
-                            class="px-6 py-2.5 rounded-xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition">Batal</a>
-                        <button type="submit"
-                            class="px-10 py-2.5 rounded-xl bg-rose-600 text-white font-bold shadow-lg shadow-rose-200 hover:bg-rose-700 transition transform active:scale-95">
+                    <div class="mt-12 flex flex-col md:flex-row items-center justify-between gap-6 border-t border-gray-100 pt-8">
+                        <a href="{{ route('kas-keluar.index') }}" class="text-xs font-black uppercase tracking-widest text-gray-400 hover:text-rose-600 transition-colors">Batal</a>
+                        <button type="submit" class="w-full md:w-auto px-12 py-5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-xl shadow-rose-200 active:scale-95 transition-all">
                             Simpan Pengeluaran
                         </button>
                     </div>
@@ -120,46 +133,17 @@
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // 1. Error dari Session (Database/Controller)
-            @if (session('error'))
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Gagal Simpan!',
-                    text: "{!! addslashes(session('error')) !!}",
-                    confirmButtonColor: '#e11d48',
-                });
-            @endif
+    @if ($errors->any())
+        <script>
+            Swal.fire({
+                icon: 'error',
+                title: 'Validasi Gagal',
+                html: '<ul class="text-left text-sm">@foreach ($errors->all() as $error)<li>- {{ $error }}</li>@endforeach</ul>',
+                confirmButtonColor: '#e11d48',
+                customClass: { popup: 'rounded-[2rem]' }
+            });
+        </script>
+    @endif
 
-            // 2. Error Validasi Laravel
-            @if ($errors->any())
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Cek Inputan Anda!',
-                    html: `
-                        <div class="text-left text-sm">
-                            <ul class="list-disc ml-4">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    `,
-                    confirmButtonColor: '#f59e0b',
-                });
-            @endif
-
-            // 3. Success Message
-            @if (session('success'))
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil',
-                    text: "{{ session('success') }}",
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            @endif
-        });
-    </script>
+    <style> [x-cloak] { display: none !important; } </style>
 </x-app-layout>

@@ -25,7 +25,7 @@
         </div>
 
         <div>
-            <div class="flex items-center justify-between">
+            {{-- <div class="flex items-center justify-between">
                 <x-input-label for="password" :value="__('Password')"
                     class="font-semibold text-gray-700 dark:text-gray-300" />
                 @if (Route::has('password.request'))
@@ -34,7 +34,7 @@
                         {{ __('Lupa password?') }}
                     </a>
                 @endif
-            </div>
+            </div> --}}
             <div class="relative mt-1">
 
                 <x-text-input id="password"
@@ -60,7 +60,7 @@
         </div>
     </form>
 
-    <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 text-center">
+    {{-- <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 text-center">
         <p class="text-sm text-gray-600 dark:text-gray-400">
             Belum punya akun?
             <a href="{{ route('register') }}"
@@ -68,5 +68,5 @@
                 Daftar Sekarang
             </a>
         </p>
-    </div>
+    </div> --}}
 </x-guest-layout>

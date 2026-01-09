@@ -1,9 +1,48 @@
-<nav x-data="{
-    {{-- Deteksi menu yang aktif berdasarkan URL --}}
-    openMenu: '{{ request()->is('master*') ? 'master' : (request()->is('transaksi*') ? 'transaksi' : '') }}',
-        toggle(menu) {
-            this.openMenu = this.openMenu === menu ? '' : menu
+@php
+    $isSuperAdmin = Auth::user()->id_level == 1;
+    $activeRoleId = session('active_role_id');
+
+    $semuaAksesTersedia = DB::table('akses')->get();
+
+    $userAksesData = DB::table('user_akses')
+        ->join('akses', 'user_akses.id_akses', '=', 'akses.id_akses')
+        ->where('user_id', Auth::id())
+        ->select('akses.id_akses', 'akses.nama_akses', 'akses.fitur_slug')
+        ->get();
+
+    // FIX LOGIC: Cari role aktif
+    $activeRole = null;
+    if ($activeRoleId) {
+        $activeRole = DB::table('akses')->where('id_akses', $activeRoleId)->first();
+    }
+
+    // Fallback jika session kosong ATAU role yang di session tiba-tiba tidak ditemukan
+    if (!$activeRole) {
+        if ($isSuperAdmin) {
+            $activeRole = (object) ['id_akses' => null, 'nama_akses' => 'Administrator', 'fitur_slug' => 'all'];
+        } else {
+            $activeRole =
+                $userAksesData->first() ?:
+                (object) ['id_akses' => null, 'nama_akses' => 'No Access', 'fitur_slug' => ''];
         }
+    }
+
+    $slugs = explode(',', $activeRole->fitur_slug ?? '');
+
+    $hasAkses = function ($targetMenu) use ($slugs) {
+        return in_array('all', $slugs) || in_array($targetMenu, $slugs);
+    };
+
+    $displayAkses = $isSuperAdmin ? $semuaAksesTersedia : $userAksesData;
+@endphp
+
+{{-- Mulai HTML Sidebar lo di bawah sini --}}
+
+<nav x-data="{
+    openMenu: '{{ request()->is('master*') ? 'master' : (request()->is('transaksi*') ? 'transaksi' : '') }}',
+    toggle(menu) {
+        this.openMenu = this.openMenu === menu ? '' : menu
+    }
 }"
     class="h-full flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300">
 
@@ -35,7 +74,7 @@
             <p class="text-[10px] font-bold text-gray-400 uppercase px-4 tracking-widest">Main Menu</p>
         </div>
 
-        @if (Auth::user()->id_level == 1 || in_array(Auth::user()->id_jabatan, [2, 3]))
+        @if ($hasAkses('all') || $hasAkses('proyek') || $hasAkses('vendor') || $hasAkses('coa'))
             <div class="space-y-1">
                 <button @click="toggle('master')"
                     :class="openMenu === 'master' ? 'bg-gray-50 dark:bg-gray-700/50 text-indigo-600' :
@@ -57,13 +96,31 @@
                 </button>
 
                 <div x-show="openMenu === 'master'" x-collapse x-cloak class="mt-1 space-y-1">
-                    @if (Auth::user()->id_level == 1)
-                        <a href="{{ route('users.index') }}"
-                            class="flex items-center py-2.5 pl-12 pr-4 text-sm {{ request()->routeIs('users.*') ? 'text-indigo-600 font-bold' : 'text-gray-500 hover:text-indigo-600' }}">Data
-                            User</a>
+
+                    @if ($hasAkses('all'))
+                        <div x-data="{ userSubOpen: {{ request()->is('master/users*') || request()->is('master/akses*') ? 'true' : 'false' }} }">
+                            <button @click="userSubOpen = !userSubOpen"
+                                class="w-full flex items-center justify-between py-2 pl-12 pr-4 text-sm {{ request()->is('master/users*') || request()->is('master/akses*') ? 'text-indigo-600 font-bold' : 'text-gray-500 hover:text-indigo-600' }}">
+                                <span>User Management</span>
+                                <svg :class="userSubOpen ? 'rotate-180' : ''" class="w-3 h-3 transition-transform"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div x-show="userSubOpen" x-collapse
+                                class="pl-4 border-l border-gray-100 ml-14 space-y-1 my-1">
+                                <a href="{{ route('akses.index') }}"
+                                    class="block py-1.5 text-xs {{ request()->routeIs('akses.*') ? 'text-indigo-600 font-medium' : 'text-gray-400 hover:text-indigo-600' }}">Akses
+                                    User</a>
+                                <a href="{{ route('users.index') }}"
+                                    class="block py-1.5 text-xs {{ request()->routeIs('users.*') ? 'text-indigo-600 font-medium' : 'text-gray-400 hover:text-indigo-600' }}">Data
+                                    User</a>
+                            </div>
+                        </div>
                     @endif
 
-                    @if (Auth::user()->id_level == 1 || Auth::user()->id_jabatan == 2)
+                    @if ($hasAkses('proyek') || $hasAkses('termin'))
                         <div x-data="{ subOpen: {{ request()->is('master/proyek*') || request()->is('master/termin*') || request()->is('master/pemberi*') ? 'true' : 'false' }} }">
                             <button @click="subOpen = !subOpen"
                                 class="w-full flex items-center justify-between py-2 pl-12 pr-4 text-sm text-gray-500 hover:text-indigo-600">
@@ -74,8 +131,7 @@
                                         d="M19 9l-7 7-7-7"></path>
                                 </svg>
                             </button>
-                            <div x-show="subOpen" x-collapse
-                                class="pl-4 border-l border-gray-100 dark:border-gray-700 ml-14 space-y-1 my-1">
+                            <div x-show="subOpen" x-collapse class="pl-4 border-l border-gray-100 ml-14 space-y-1 my-1">
                                 <a href="{{ route('pemberi.index') }}"
                                     class="block py-1.5 text-xs {{ request()->routeIs('pemberi.*') ? 'text-indigo-600 font-medium' : 'text-gray-400 hover:text-indigo-600' }}">Pemberi
                                     Proyek</a>
@@ -87,11 +143,14 @@
                                     Proyek</a>
                             </div>
                         </div>
+                    @endif
+
+                    @if ($hasAkses('vendor'))
                         <a href="{{ route('vendor.index') }}"
                             class="flex items-center py-2.5 pl-12 pr-4 text-sm {{ request()->routeIs('vendor.*') ? 'text-indigo-600 font-bold' : 'text-gray-500 hover:text-indigo-600' }}">Vendor</a>
                     @endif
 
-                    @if (Auth::user()->id_level == 1 || Auth::user()->id_jabatan == 3)
+                    @if ($hasAkses('coa'))
                         <a href="{{ route('coa.index') }}"
                             class="flex items-center py-2.5 pl-12 pr-4 text-sm {{ request()->routeIs('coa.*') ? 'text-indigo-600 font-bold' : 'text-gray-500 hover:text-indigo-600' }}">COA
                             (Akun)</a>
@@ -100,7 +159,7 @@
             </div>
         @endif
 
-        @if (Auth::user()->id_level == 1 || Auth::user()->id_jabatan == 3)
+        @if ($hasAkses('all') || $hasAkses('kas_masuk') || $hasAkses('kas_keluar'))
             <div class="space-y-1">
                 <button @click="toggle('transaksi')"
                     :class="openMenu === 'transaksi' ? 'bg-gray-50 dark:bg-gray-700/50 text-indigo-600' :
@@ -117,23 +176,38 @@
                     <svg :class="openMenu === 'transaksi' ? 'rotate-180' : ''"
                         class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor"
                         viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+                        </path>
                     </svg>
                 </button>
 
                 <div x-show="openMenu === 'transaksi'" x-collapse x-cloak class="mt-1 space-y-1">
-                    <a href="{{ route('kategori.index') }}"
-                        class="flex items-center py-2.5 pl-12 pr-4 text-sm {{ request()->routeIs('kategori.*') ? 'text-indigo-600 font-bold' : 'text-gray-500 hover:text-indigo-600' }}">Kategori
-                        Kas</a>
-                    <a href="{{ route('kas-masuk.index') }}"
-                        class="flex items-center py-2.5 pl-12 pr-4 text-sm {{ request()->routeIs('kas-masuk.*') ? 'text-indigo-600 font-bold' : 'text-gray-500 hover:text-indigo-600' }}">Kas
-                        Masuk</a>
-                    <a href="{{ route('kas-keluar.index') }}"
-                        class="flex items-center py-2.5 pl-12 pr-4 text-sm {{ request()->routeIs('kas-keluar.*') ? 'text-indigo-600 font-bold' : 'text-gray-500 hover:text-indigo-600' }}">Kas
-                        Keluar</a>
+                    @if ($hasAkses('all'))
+                        <a href="{{ route('kategori.index') }}"
+                            class="flex items-center py-2.5 pl-12 pr-4 text-sm {{ request()->routeIs('kategori.*') ? 'text-indigo-600 font-bold' : 'text-gray-500 hover:text-indigo-600' }}">Kategori
+                            Kas</a>
+                    @endif
+
+                    @if ($hasAkses('kas_masuk'))
+                        <a href="{{ route('kas-masuk.index') }}"
+                            class="flex items-center py-2.5 pl-12 pr-4 text-sm {{ request()->routeIs('kas-masuk.*') ? 'text-indigo-600 font-bold' : 'text-gray-500 hover:text-indigo-600' }}">Kas
+                            Masuk</a>
+                    @endif
+
+                    @if ($hasAkses('kas_keluar'))
+                        <a href="{{ route('kas-keluar.index') }}"
+                            class="flex items-center py-2.5 pl-12 pr-4 text-sm {{ request()->routeIs('kas-keluar.*') ? 'text-indigo-600 font-bold' : 'text-gray-500 hover:text-indigo-600' }}">Kas
+                            Keluar</a>
+                    @endif
                 </div>
             </div>
+        @endif
 
+        <div class="pt-4 pb-2">
+            <p class="text-[10px] font-bold text-gray-400 uppercase px-4 tracking-widest">Laporan</p>
+        </div>
+
+        @if ($hasAkses('all') || $hasAkses('coa'))
             <a href="{{ route('jurnal.index') }}"
                 class="flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 {{ request()->routeIs('jurnal.*') ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/30 hover:text-indigo-600' }}">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -146,9 +220,10 @@
         @endif
     </div>
 
-
-    <div class="p-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 shrink-0">
-        <div class="flex items-center justify-between mb-4">
+    {{-- Footer Section: Theme & Profile --}}
+    <div class="bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 shrink-0">
+        {{-- Theme Switcher --}}
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
             <div
                 class="flex gap-2 p-1 bg-white dark:bg-gray-800 rounded-full border border-gray-100 dark:border-gray-700 shadow-sm">
                 <button onclick="setTheme('#4f46e5')"
@@ -171,28 +246,93 @@
             </button>
         </div>
 
-        <div class="flex items-center gap-3">
-            <div
-                class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-indigo-500/20">
-                {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
-            </div>
-            <div class="flex-1 overflow-hidden">
-                <p class="text-[13px] font-bold text-gray-800 dark:text-white truncate">{{ Auth::user()->name }}</p>
-                <p class="text-[10px] text-gray-400 truncate tracking-tight uppercase font-medium">
-                    {{ Auth::user()->roles && Auth::user()->roles->count() > 0 ? Auth::user()->roles->first()->name : 'Staff' }}
-                </p>
-            </div>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit"
-                    class="p-2 text-gray-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+        {{-- Profile Dropdown --}}
+        <div class="p-4" x-data="{ profileOpen: false }">
+            <div class="relative">
+                <button @click="profileOpen = !profileOpen"
+                    class="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white dark:hover:bg-gray-800 transition-all duration-200">
+
+                    {{-- Avatar --}}
+                    <div
+                        class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-indigo-500/20">
+                        {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
+                    </div>
+
+                    {{-- Label Nama & Role --}}
+                    <div class="flex-1 text-left overflow-hidden">
+                        <p class="text-[13px] font-bold text-gray-800 dark:text-white truncate">
+                            {{ Auth::user()->name }}
+                        </p>
+                        <p class="text-[10px] text-indigo-500 dark:text-indigo-400 font-bold truncate uppercase">
+                            {{ $activeRole->nama_akses ?? 'Staff' }}
+                        </p>
+                    </div>
+
+                    {{-- Arrow Icon --}}
+                    <svg :class="profileOpen ? 'rotate-180' : ''" class="w-4 h-4 text-gray-400 transition-transform"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7">
                         </path>
                     </svg>
                 </button>
-            </form>
+
+                {{-- Dropdown Content --}}
+                <div x-show="profileOpen" x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0 scale-95 translate-y-2"
+                    x-transition:enter-end="opacity-100 scale-100 translate-y-0" @click.away="profileOpen = false"
+                    class="absolute bottom-full left-0 w-full mb-2 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50">
+
+                    <div class="p-2 space-y-1">
+                        <div class="px-3 py-2 border-b border-gray-50 dark:border-gray-700 mb-1">
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Otoritas Aktif</p>
+                        </div>
+
+                        {{-- List Semua Role yang Dimiliki --}}
+                        <div class="space-y-1">
+                            @php
+                                $listAkses = $isSuperAdmin ? $semuaAksesTersedia : $userAksesData;
+                            @endphp
+
+                            @foreach ($displayAkses as $akses)
+                                <form action="{{ route('switch.role') }}" method="POST">
+                                    @csrf
+                                    <input type="hidden" name="id_akses" value="{{ $akses->id_akses }}">
+                                    <button type="submit"
+                                        class="w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all mb-1
+            {{ $activeRole->id_akses == $akses->id_akses ? 'bg-indigo-600 text-white shadow-md' : 'bg-gray-50 hover:bg-indigo-50 text-gray-700 dark:bg-gray-700/50 dark:text-gray-300' }}">
+
+                                        <span class="text-xs font-semibold">{{ $akses->nama_akses }}</span>
+
+                                        @if ($activeRole->id_akses == $akses->id_akses)
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd"
+                                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                        @endif
+                                    </button>
+                                </form>
+                            @endforeach
+                        </div>
+
+                        <div class="border-t border-gray-50 dark:border-gray-700 my-1"></div>
+
+                        {{-- Tombol Logout --}}
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit"
+                                class="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                                    </path>
+                                </svg>
+                                Keluar Aplikasi
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </nav>

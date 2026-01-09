@@ -34,7 +34,7 @@
                         </div>
                         <div>
                             <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Diterima Oleh (Vendor)</p>
-                            <p class="font-bold text-gray-700">{{ $data->nama_vendor ?? '-' }}</p>
+                            <p class="font-bold text-gray-700">{{ $data->nama ?? '-' }}</p>
                         </div>
                         <div class="md:col-span-2">
                             <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Proyek Terkait</p>

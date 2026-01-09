@@ -64,7 +64,7 @@
                         <label class="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-widest">Status Proyek</label>
                         <select name="status" class="w-full rounded-xl border-gray-200 dark:bg-gray-900 dark:border-gray-700 focus:ring-amber-500">
                             <option value="aktif" {{ $proyek->status == 'aktif' ? 'selected' : '' }}>Aktif</option>
-                            <option value="nonaktif" {{ $proyek->status == 'nonaktif' ? 'selected' : '' }}>Non-Aktif</option>
+                            <option value="selesai" {{ $proyek->status == 'selesai' ? 'selected' : '' }}>Non-Aktif</option>
                         </select>
                     </div>
 

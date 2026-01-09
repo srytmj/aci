@@ -38,7 +38,7 @@ class DashboardController extends Controller
         // 4. Query Transaksi Terbaru (Yang kita buat sebelumnya)
         $kasMasukUnion = DB::table('kas_masuk')
             ->leftJoin('proyek', 'kas_masuk.id_proyek', '=', 'proyek.id_proyek')
-            ->leftJoin('kategori_kas_masuk', 'kas_masuk.id_kategori_masuk', '=', 'kategori_kas_masuk.id_kategori_masuk')
+            ->leftJoin('kategori_kas_masuk', 'kas_masuk.id_kategori', '=', 'kategori_kas_masuk.id_kategori')
             ->leftJoin('metode_bayar', 'kas_masuk.id_metode_bayar', '=', 'metode_bayar.id_metode_bayar')
             ->select('kas_masuk.no_form', 'kas_masuk.tanggal_masuk as tanggal', 'kas_masuk.nominal', 'kas_masuk.keterangan', 'proyek.nama', 'kategori_kas_masuk.nama_kategori as info_tambahan', 'metode_bayar.nama_metode_bayar', DB::raw("'Masuk' as tipe"));
 

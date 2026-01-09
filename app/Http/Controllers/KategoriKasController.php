@@ -4,147 +4,137 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class KategoriKasController extends Controller
 {
+    /**
+     * Tampilkan semua kategori kas
+     */
     public function index()
     {
-        // Query untuk Kas Masuk
-        $masuk = DB::table('kategori_kas_masuk')
-            ->leftJoin('coa as coa_d', 'kategori_kas_masuk.id_coa_debit', '=', 'coa_d.id_coa')
-            ->leftJoin('coa as coa_k', 'kategori_kas_masuk.id_coa_kredit', '=', 'coa_k.id_coa')
+        // Ambil semua data dari satu tabel kategori_kas
+        $kategori = DB::table('kategori_kas')
+            ->leftJoin('coa as coa_debit', 'kategori_kas.id_coa_debit', '=', 'coa_debit.id_coa')
+            ->leftJoin('coa as coa_kredit', 'kategori_kas.id_coa_kredit', '=', 'coa_kredit.id_coa')
             ->select(
-                'kategori_kas_masuk.*',
-                'coa_d.nama_akun as nama_debit',
-                'coa_d.kode_akun as kode_debit',
-                'coa_k.nama_akun as nama_kredit',
-                'coa_k.kode_akun as kode_kredit'
+                'kategori_kas.*',
+                'coa_debit.nama_akun as nama_debit',
+                'coa_debit.kode_akun as kode_debit',
+                'coa_kredit.nama_akun as nama_kredit',
+                'coa_kredit.kode_akun as kode_kredit'
             )
             ->get();
 
-        // Query untuk Kas Keluar
-        $keluar = DB::table('kategori_kas_keluar')
-            ->leftJoin('coa as coa_d', 'kategori_kas_keluar.id_coa_debit', '=', 'coa_d.id_coa')
-            ->leftJoin('coa as coa_k', 'kategori_kas_keluar.id_coa_kredit', '=', 'coa_k.id_coa')
-            ->select(
-                'kategori_kas_keluar.*',
-                'coa_d.nama_akun as nama_debit',
-                'coa_d.kode_akun as kode_debit',
-                'coa_k.nama_akun as nama_kredit',
-                'coa_k.kode_akun as kode_kredit'
-            )
-            ->get();
-
-        return view('kategori.index', compact('masuk', 'keluar'));
+        return view('kategori.index', compact('kategori'));
     }
 
+    /**
+     * Form tambah kategori
+     */
     public function create()
     {
-        // Ambil data COA buat dropdown mapping
+        // Kita ambil data COA untuk pilihan Mapping Akun di form
         $coa = DB::table('coa')->orderBy('kode_akun', 'asc')->get();
-
-        // Default jenis kita set kosong atau 'masuk'
         return view('kategori.create', compact('coa'));
     }
 
     public function store(Request $request)
     {
-        $table = $request->jenis == 'masuk' ? 'kategori_kas_masuk' : 'kategori_kas_keluar';
+        // Validasi input
+        $request->validate([
+            'nama_kategori' => 'required|string|max:255',
+            'arus' => 'required|in:masuk,keluar',
+            'jenis' => 'required|in:proyek,non-proyek',
+            'id_coa_debit' => 'nullable|exists:coa,id_coa',
+            'id_coa_kredit' => 'nullable|exists:coa,id_coa',
+        ]);
 
         try {
-            DB::table($table)->insert([
+            DB::table('kategori_kas')->insert([
                 'nama_kategori' => $request->nama_kategori,
+                'arus' => $request->arus,
+                'jenis' => $request->jenis,
                 'id_coa_debit' => $request->id_coa_debit,
                 'id_coa_kredit' => $request->id_coa_kredit,
                 'deskripsi' => $request->deskripsi,
-                'created_at' => now()
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
-            return redirect()->route('kategori.index')->with('success', 'Kategori berhasil dibuat!');
+
+            return redirect()->route('kategori.index')->with('success', 'Kategori baru berhasil ditambahkan!');
         } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
+            // Balikin error ke SweetAlert2 di view
+            return back()->withInput()->with('error', 'Gagal menyimpan: ' . $e->getMessage());
         }
     }
 
-    public function edit($id, $jenis)
+    /**
+     * Form edit kategori
+     */
+    public function edit($id)
     {
-        $table = $jenis == 'masuk' ? 'kategori_kas_masuk' : 'kategori_kas_keluar';
-        $pk = $jenis == 'masuk' ? 'id_kategori_masuk' : 'id_kategori_keluar';
+        // Cari data di satu tabel tunggal
+        $data = DB::table('kategori_kas')->where('id_kategori', $id)->first();
 
-        $data = DB::table($table)->where($pk, $id)->first();
+        if (!$data) {
+            return redirect()->route('kategori.index')->with('error', 'Data kategori tidak ditemukan!');
+        }
+
         $coa = DB::table('coa')->orderBy('kode_akun', 'asc')->get();
 
-        return view('kategori.edit', compact('data', 'jenis', 'coa', 'pk'));
+        // Kita definisikan primary key-nya secara manual untuk view lo
+        $pk = 'id_kategori';
+
+        // Variabel $jenis diambil langsung dari database record-nya
+        $jenis = $data->arus;
+
+        return view('kategori.edit', compact('data', 'coa', 'pk', 'jenis'));
     }
 
     public function update(Request $request, $id)
     {
-        // 1. Validasi Input
         $request->validate([
             'nama_kategori' => 'required|string|max:255',
+            'arus' => 'required|in:masuk,keluar',
+            'jenis' => 'required|in:proyek,non-proyek',
             'id_coa_debit' => 'required',
             'id_coa_kredit' => 'required',
-            'jenis' => 'required|in:masuk,keluar'
-        ], [
-            'nama_kategori.required' => 'Nama kategori nggak boleh kosong, brok!',
-            'id_coa_debit.required' => 'Akun Debit harus dipilih buat jurnal otomatis.',
-            'id_coa_kredit.required' => 'Akun Kredit harus dipilih buat jurnal otomatis.',
         ]);
 
-        $table = $request->jenis == 'masuk' ? 'kategori_kas_masuk' : 'kategori_kas_keluar';
-        $pk = $request->jenis == 'masuk' ? 'id_kategori_masuk' : 'id_kategori_keluar';
-
-        DB::beginTransaction();
         try {
-            // 2. Cek apakah data yang mau diupdate ada
-            $exists = DB::table($table)->where($pk, $id)->first();
-            if (!$exists) {
-                throw new \Exception("Data kategori tidak ditemukan di database!");
-            }
-
-            // 3. Eksekusi Update
-            DB::table($table)->where($pk, $id)->update([
+            DB::table('kategori_kas')->where('id_kategori', $id)->update([
                 'nama_kategori' => $request->nama_kategori,
+                'arus' => $request->arus,
+                'jenis' => $request->jenis,
                 'id_coa_debit' => $request->id_coa_debit,
                 'id_coa_kredit' => $request->id_coa_kredit,
                 'deskripsi' => $request->deskripsi,
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
 
-            DB::commit();
-            return redirect()->route('kategori.index')->with('success', 'Kategori berhasil diperbarui.');
-
+            return redirect()->route('kategori.index')->with('success', 'Kategori berhasil diperbarui!');
         } catch (\Exception $e) {
-            DB::rollBack();
-
-            // Return SweetAlert2 via session error
-            return back()
-                ->withInput()
-                ->with('error', 'Gagal update data: ' . $e->getMessage());
+            return back()->with('error', 'Gagal memperbarui data: ' . $e->getMessage());
         }
     }
 
-    public function destroy($id, $jenis)
+    /**
+     * Hapus kategori
+     */
+    public function destroy($id)
     {
-        // Tentukan tabel dan Primary Key berdasarkan jenis
-        $table = $jenis == 'masuk' ? 'kategori_kas_masuk' : 'kategori_kas_keluar';
-        $pk = $jenis == 'masuk' ? 'id_kategori_masuk' : 'id_kategori_keluar';
-
         try {
-            // Cek dulu datanya ada atau nggak
-            $exists = DB::table($table)->where($pk, $id)->exists();
-
-            if (!$exists) {
-                return back()->with('error', 'Data tidak ditemukan atau sudah dihapus!');
+            // Proteksi jika sudah ada transaksi
+            $isUsed = DB::table('kas')->where('id_kategori', $id)->exists();
+            if ($isUsed) {
+                return back()->with('error', 'Kategori ini tidak bisa dihapus karena sudah memiliki data transaksi!');
             }
 
-            // Eksekusi hapus
-            DB::table($table)->where($pk, $id)->delete();
-
-            return redirect()->route('kategori.index')->with('success', 'Kategori ' . ucfirst($jenis) . ' berhasil dihapus!');
-
+            DB::table('kategori_kas')->where('id_kategori', $id)->delete();
+            return redirect()->route('kategori.index')->with('success', 'Kategori berhasil dihapus!');
         } catch (\Exception $e) {
-            // Balikin error ke SweetAlert2 kalau ada constraint (misal: kategori sudah dipake di transaksi)
-            return back()->with('error', 'Gagal menghapus: Kategori ini mungkin sedang digunakan dalam transaksi.');
+            return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
         }
     }
 }

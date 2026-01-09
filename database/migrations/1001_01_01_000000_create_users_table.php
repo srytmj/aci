@@ -3,61 +3,60 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('user_jabatan', function (Blueprint $table) {
-            $table->id('id_jabatan');
-            $table->string('nama_jabatan', 50); // karyawan, proyek, pembayaran, dokumen, umum
+        // 1. Tabel Akses (Master List Fitur)
+        Schema::create('akses', function (Blueprint $table) {
+            $table->id('id_akses');
+            $table->string('nama_akses', 50);
+            $table->text('fitur_slug')->nullable();
         });
 
-        DB::table('user_jabatan')->insert([
-            ['nama_jabatan' => 'Karyawan'],
-            ['nama_jabatan' => 'Proyek'],
-            ['nama_jabatan' => 'Pembayaran'],
-            // ['nama_jabatan' => 'Dokumen'],
-            ['nama_jabatan' => 'Umum'],
+        DB::table('akses')->insert([
+            ['nama_akses' => 'Admin', 'fitur_slug' => 'all'],
+            ['nama_akses' => 'Karyawan', 'fitur_slug' => 'dashboard'],
+            ['nama_akses' => 'Proyek', 'fitur_slug' => 'proyek,termin'],
+            ['nama_akses' => 'Pembayaran', 'fitur_slug' => 'laporan,kategori,coa,kas_masuk,kas_keluar'],
+            ['nama_akses' => 'Umum', 'fitur_slug' => 'dasboard,laporan'],
         ]);
 
-        Schema::create('user_level', function (Blueprint $table) {
-            $table->id('id_level');
-            $table->string('nama_level', 50);
-        });
-
-        DB::table('user_level')->insert([
-            ['nama_level' => 'Admin'],
-            ['nama_level' => 'User'],
-        ]);
-
+        // 2. Tabel Users (DENGAN id_level)
         Schema::create('users', function (Blueprint $table) {
-            $table->id('id'); // Sesuaikan PK
-            $table->string('name', 50)->unique();
+            $table->id();
+            $table->string('name', 50)->unique(); // Username
             $table->string('nama_lengkap', 100)->nullable();
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
+            $table->integer('id_level')->default(2); // 1: Admin, 2: User/Staff
             $table->string('password');
-
-            // Relasi sesuai file Word kamu
-            $table->foreignId('id_level')->constrained('user_level', 'id_level')->default(2)->nullable();
-            $table->foreignId('id_jabatan')->constrained('user_jabatan', 'id_jabatan')->default(2)->nullable();
-
             $table->datetime('last_login')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
 
         DB::table('users')->insert([
-            ['name' => 'admin', 'email' => 'admin@admin.com', 'id_level' => 1, 'id_jabatan' => 5], // Admin (All)
-            ['name' => 'finance', 'email' => 'finance@test.com', 'id_level' => 2, 'id_jabatan' => 3], // Finance (COA, Transaksi, Jurnal)
-            ['name' => 'proyek', 'email' => 'proyek@test.com', 'id_level' => 2, 'id_jabatan' => 2], // Proyek (Proyek, Vendor)
-            ['name' => 'umum', 'email' => 'umum@test.com', 'id_level' => 2, 'id_jabatan' => 5], // Umum (Dashboard Only)
-            ['name' => 'karyawan', 'email' => 'karyawan@test.com', 'id_level' => 2, 'id_jabatan' => 1], // Karyawan (Dashboard Only)
+            ['name' => 'admin', 'email' => 'admin@admin.com', 'id_level' => 1, 'password' => bcrypt('12341234'), 'created_at' => now()],
+            ['name' => 'finance', 'email' => 'finance@test.com', 'id_level' => 2, 'password' => bcrypt('12341234'), 'created_at' => now()],
         ]);
 
+        // 3. Tabel Pivot (Biar 1 User bisa punya banyak akses)
+        Schema::create('user_akses', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('id_akses')->constrained('akses', 'id_akses')->onDelete('cascade');
+            $table->timestamps();
+        });
+
+        DB::table('user_akses')->insert([
+            ['user_id' => 1, 'id_akses' => 1],
+            ['user_id' => 2, 'id_akses' => 2],
+            ['user_id' => 2, 'id_akses' => 4],
+
+        ]);
+
+        // 4. Tabel Pendukung Laravel
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
@@ -74,15 +73,12 @@ return new class extends Migration {
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('users');
-        Schema::dropIfExists('user_jabatan');
-        Schema::dropIfExists('user_level');
-        Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('user_akses');
+        Schema::dropIfExists('users');
+        Schema::dropIfExists('akses');
     }
 };
