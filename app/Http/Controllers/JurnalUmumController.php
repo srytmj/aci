@@ -10,18 +10,18 @@ class JurnalUmumController extends Controller
     public function index(Request $request)
     {
         try {
+            // Ambil filter, default ke bulan dan tahun sekarang
             $bulan = $request->get('bulan', date('m'));
             $tahun = $request->get('tahun', date('Y'));
 
             $jurnals = DB::table('jurnal_umum')
                 ->join('coa', 'jurnal_umum.id_coa', '=', 'coa.id_coa')
-                // Jika tabelnya sudah digabung jadi satu tabel 'kas'
                 ->leftJoin('kas', 'jurnal_umum.id_transaksi', '=', 'kas.id_kas')
                 ->select(
                     'jurnal_umum.*',
                     'coa.kode_akun',
                     'coa.nama_akun',
-                    'kas.no_form as no_ref' // Langsung ambil dari kolom no_form tabel kas
+                    'kas.no_form as no_ref'
                 )
                 ->whereMonth('jurnal_umum.tanggal', $bulan)
                 ->whereYear('jurnal_umum.tanggal', $tahun)
@@ -29,11 +29,18 @@ class JurnalUmumController extends Controller
                 ->orderBy('jurnal_umum.id_jurnal', 'asc')
                 ->get();
 
+            // Cek jika user melakukan filter tapi datanya kosong
+            if ($jurnals->isEmpty() && $request->has('bulan')) {
+                return redirect()->route('jurnal.index')
+                    ->with('error', 'Data jurnal periode ' . date('F', mktime(0, 0, 0, $bulan, 1)) . ' ' . $tahun . ' tidak ditemukan.');
+            }
+
             return view('jurnal.index', compact('jurnals', 'bulan', 'tahun'));
 
         } catch (\Exception $e) {
-            // Jika ada error, kirim pesan ke view untuk ditangkap SweetAlert2
-            return back()->with('error', 'Gagal memuat Jurnal: ' . $e->getMessage());
+            // Balikkan ke halaman sebelumnya dengan pesan error sistem untuk SweetAlert2
+            return redirect()->route('jurnal.index')
+                ->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage());
         }
     }
 }

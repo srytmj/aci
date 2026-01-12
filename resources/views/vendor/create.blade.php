@@ -59,9 +59,11 @@
                             class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2 tracking-wider">
                             Nomor Telepon / WA
                         </label>
-                        <input type="text" name="no_telp" id="no_telp" value="{{ old('no_telp') }}"
-                            placeholder="0812xxxx..."
+                        <input type="tel" name="no_telp" id="no_telp" value="{{ old('no_telp') }}" required
+                            placeholder="0812xxxx..." inputmode="numeric"
+                            oninput="this.value = this.value.replace(/[^0-9+]/g, '')"
                             class="w-full rounded-xl border-gray-200 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-indigo-500 transition-all">
+                        <p class="text-[10px] text-gray-400 mt-1 italic">* Hanya angka dan simbol +</p>
                     </div>
 
                     <div class="col-span-2">
@@ -69,7 +71,8 @@
                             class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2 tracking-wider">
                             Email Vendor
                         </label>
-                        <input type="email" name="email" value="{{ old('email') }}" placeholder="vendor@email.com"
+                        <input type="email" name="email" value="{{ old('email') }}" required
+                            placeholder="vendor@email.com"
                             class="w-full rounded-xl border-gray-200 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-indigo-500 transition-all">
                     </div>
 

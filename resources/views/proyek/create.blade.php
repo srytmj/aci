@@ -59,7 +59,7 @@
 
                     <div>
                         <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Jumlah Termin</label>
-                        <input type="number" name="jumlah_termin" id="jumlah_termin" value="{{ old('jumlah_termin', 1) }}" min="1" required
+                        <input type="number" name="jumlah_termin" id="jumlah_termin" value="{{ old('jumlah_termin', 1) }}" min="1" max="10" required
                             class="w-full rounded-xl border-gray-200 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         <p class="text-[10px] text-amber-600 dark:text-amber-400 mt-1 italic font-medium">
                             * Note: Jumlah termin tidak bisa diubah setelah disimpan.

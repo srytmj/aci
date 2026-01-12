@@ -30,7 +30,7 @@ class ProyekController extends Controller
             'nama' => 'required|max:150',
             'id_pemberi' => 'required',
             'nilai_kontrak' => 'required|numeric',
-            'jumlah_termin' => 'required|integer|min:1', // Tambahkan validasi jumlah termin
+            'jumlah_termin' => 'required|integer|min:1|max:10', // Tambahkan validasi jumlah termin
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'required|date',
             'status' => 'required'
@@ -92,28 +92,38 @@ class ProyekController extends Controller
 
     public function update(Request $request, $id)
     {
-        $request->validate([
-            'nama' => 'required|max:150',
-            'id_pemberi' => 'required',
-            'nilai_kontrak' => 'required|numeric',
-            'tanggal_mulai' => 'required|date',
-            'tanggal_selesai' => 'required|date',
-            'status' => 'required'
-        ]);
+        try {
+            // 1. Validasi (Hapus nilai_kontrak & jumlah_termin dari required karena di-lock di view)
+            $request->validate([
+                'nama' => 'required|max:150',
+                'id_pemberi' => 'required',
+                'tanggal_mulai' => 'required|date',
+                'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai', // Tambah pengaman tanggal
+                'status' => 'required'
+            ]);
 
-        DB::table('proyek')->where('id_proyek', $id)->update([
-            'nama' => $request->nama,
-            'id_pemberi' => $request->id_pemberi,
-            'nilai_kontrak' => $request->nilai_kontrak,
-            'jumlah_termin' => $request->jumlah_termin,
-            'tanggal_mulai' => $request->tanggal_mulai,
-            'tanggal_selesai' => $request->tanggal_selesai,
-            'status' => $request->status,
-            'deskripsi' => $request->deskripsi,
-            'updated_at' => now(),
-        ]);
+            // 2. Eksekusi Update
+            // Data nilai_kontrak dan jumlah_termin tidak ikut di-update agar tetap konsisten dengan kontrak awal
+            DB::table('proyek')->where('id_proyek', $id)->update([
+                'nama' => $request->nama,
+                'id_pemberi' => $request->id_pemberi,
+                'tanggal_mulai' => $request->tanggal_mulai,
+                'tanggal_selesai' => $request->tanggal_selesai,
+                'status' => $request->status,
+                'deskripsi' => $request->deskripsi,
+                'updated_at' => now(),
+            ]);
 
-        return redirect()->route('proyek.index')->with('success', 'Data proyek berhasil diperbarui!');
+            return redirect()->route('proyek.index')->with('success', 'Data proyek berhasil diperbarui!');
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Jika validasi gagal (misal tanggal tidak sesuai)
+            return back()->withErrors($e->errors())->withInput();
+
+        } catch (\Exception $e) {
+            // Jika ada error database atau sistem, munculkan SweetAlert2 dengan pesan aslinya
+            return back()->with('error', 'Gagal update: ' . $e->getMessage())->withInput();
+        }
     }
 
     public function destroy($id)

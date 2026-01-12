@@ -10,55 +10,81 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // Set Waktu Sekarang (Sesuaikan dengan data 2025/2026)
-        $now = Carbon::now();
-        $bulanIni = $now->format('m');
-        $tahunIni = $now->format('Y');
+        try {
+            // Set Waktu Sekarang (Data 2026 sesuai context)
+            $now = Carbon::now();
+            $bulanIni = $now->month;
+            $tahunIni = $now->year;
 
-        // 1. Hitung Total Proyek & Proyek Aktif (id_status 1 = Aktif berdasarkan doc lo)
-        $totalProyek = DB::table('proyek')->count();
-        $proyekAktif = DB::table('proyek')->where('status', 'aktif')->count();
+            // 1. Statistik Proyek
+            $totalProyek = DB::table('proyek')->count();
+            $proyekAktif = DB::table('proyek')->where('status', 'aktif')->count();
 
-        // 2. Hitung Saldo Kas (Semua Waktu)
-        $totalMasuk = DB::table('kas_masuk')->sum('nominal') ?? 0;
-        $totalKeluar = DB::table('kas_keluar')->sum('nominal') ?? 0;
-        $saldoKas = $totalMasuk - $totalKeluar;
+            // 2. Hitung Saldo Kas Keseluruhan
+            // Kita hitung dalam satu query agar lebih efisien
+            $rekapKas = DB::table('kas')
+                ->selectRaw("SUM(CASE WHEN arus = 'masuk' THEN nominal ELSE 0 END) as total_masuk")
+                ->selectRaw("SUM(CASE WHEN arus = 'keluar' THEN nominal ELSE 0 END) as total_keluar")
+                ->first();
 
-        // 3. Mutasi Khusus Bulan Ini (Format YYYY-MM-DD aman pake whereMonth)
-        $kasMasukBulanIni = DB::table('kas_masuk')
-            ->whereMonth('tanggal_masuk', $bulanIni)
-            ->whereYear('tanggal_masuk', $tahunIni)
-            ->sum('nominal') ?? 0;
+            $saldoKas = ($rekapKas->total_masuk ?? 0) - ($rekapKas->total_keluar ?? 0);
 
-        $kasKeluarBulanIni = DB::table('kas_keluar')
-            ->whereMonth('tanggal_keluar', $bulanIni)
-            ->whereYear('tanggal_keluar', $tahunIni)
-            ->sum('nominal') ?? 0;
+            // 3. Mutasi Khusus Bulan Ini
+            $kasMasukBulanIni = DB::table('kas')
+                ->where('arus', 'masuk')
+                ->whereMonth('tanggal', $bulanIni)
+                ->whereYear('tanggal', $tahunIni)
+                ->sum('nominal') ?? 0;
 
-        // 4. Query Transaksi Terbaru (Yang kita buat sebelumnya)
-        $kasMasukUnion = DB::table('kas_masuk')
-            ->leftJoin('proyek', 'kas_masuk.id_proyek', '=', 'proyek.id_proyek')
-            ->leftJoin('kategori_kas_masuk', 'kas_masuk.id_kategori', '=', 'kategori_kas_masuk.id_kategori')
-            ->leftJoin('metode_bayar', 'kas_masuk.id_metode_bayar', '=', 'metode_bayar.id_metode_bayar')
-            ->select('kas_masuk.no_form', 'kas_masuk.tanggal_masuk as tanggal', 'kas_masuk.nominal', 'kas_masuk.keterangan', 'proyek.nama', 'kategori_kas_masuk.nama_kategori as info_tambahan', 'metode_bayar.nama_metode_bayar', DB::raw("'Masuk' as tipe"));
+            $kasKeluarBulanIni = DB::table('kas')
+                ->where('arus', 'keluar')
+                ->whereMonth('tanggal', $bulanIni)
+                ->whereYear('tanggal', $tahunIni)
+                ->sum('nominal') ?? 0;
 
-        $transaksiTerbaru = DB::table('kas_keluar')
-            ->leftJoin('proyek', 'kas_keluar.id_proyek', '=', 'proyek.id_proyek')
-            ->leftJoin('vendor', 'kas_keluar.id_vendor', '=', 'vendor.id_vendor')
-            ->leftJoin('metode_bayar', 'kas_keluar.id_metode_bayar', '=', 'metode_bayar.id_metode_bayar')
-            ->select('kas_keluar.no_form', 'kas_keluar.tanggal_keluar as tanggal', 'kas_keluar.nominal', 'kas_keluar.keterangan', 'proyek.nama', 'vendor.nama as info_tambahan', 'metode_bayar.nama_metode_bayar', DB::raw("'Keluar' as tipe"))
-            ->union($kasMasukUnion)
-            ->orderBy('tanggal', 'desc')
-            ->limit(5)
-            ->get();
+            // 4. Query Transaksi Terbaru
+            // Karena sudah satu tabel, tidak perlu UNION, cukup join biasa
+            $transaksiTerbaru = DB::table('kas')
+                ->leftJoin('proyek', 'kas.id_proyek', '=', 'proyek.id_proyek')
+                ->leftJoin('kategori_kas', 'kas.id_kategori', '=', 'kategori_kas.id_kategori')
+                ->leftJoin('vendor', 'kas.id_vendor', '=', 'vendor.id_vendor')
+                ->leftJoin('metode_bayar', 'kas.id_metode_bayar', '=', 'metode_bayar.id_metode_bayar')
+                ->select(
+                    'kas.no_form',
+                    'kas.tanggal',
+                    'kas.nominal',
+                    'kas.keterangan',
+                    'kas.arus as tipe',
+                    'proyek.nama as nama_proyek',
+                    'kategori_kas.nama_kategori',
+                    'vendor.nama as nama_vendor',
+                    'metode_bayar.nama_metode_bayar'
+                )
+                ->orderBy('kas.tanggal', 'desc')
+                ->orderBy('kas.created_at', 'desc')
+                ->limit(5)
+                ->get();
 
-        return view('dashboard', compact(
-            'totalProyek',
-            'proyekAktif',
-            'saldoKas',
-            'kasMasukBulanIni',
-            'kasKeluarBulanIni',
-            'transaksiTerbaru'
-        ));
+            return view('dashboard', compact(
+                'totalProyek',
+                'proyekAktif',
+                'saldoKas',
+                'kasMasukBulanIni',
+                'kasKeluarBulanIni',
+                'transaksiTerbaru'
+            ));
+
+        } catch (\Exception $e) {
+            // Mengikuti instruksi Saved Info: return sweetalert2 jika error
+            return redirect()->back()->with('error', "
+                <script>
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Waduh!',
+                        text: 'Terjadi kesalahan saat memuat dashboard: " . addslashes($e->getMessage()) . "',
+                    });
+                </script>
+            ");
+        }
     }
 }

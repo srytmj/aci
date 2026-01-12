@@ -72,7 +72,7 @@
                                 <th class="p-4 text-right">Debit (Rp)</th>
                                 <th class="p-4 text-right rounded-r-xl">Kredit (Rp)</th>
                             </tr>
-                            
+
                         </thead>
                         <tbody class="text-sm divide-y divide-gray-50 dark:divide-gray-700">
                             @forelse ($jurnals as $j)
@@ -84,7 +84,7 @@
                                         @if ($j->no_ref)
                                             <span
                                                 class="px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wider border 
-                                                {{ str_contains($j->no_ref, 'K') ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10' : 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10' }}">
+                        {{ str_contains($j->no_ref, 'K') ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10' : 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10' }}">
                                                 {{ $j->no_ref }}
                                             </span>
                                         @else
@@ -101,13 +101,26 @@
                                             {{ $j->nama_akun }}
                                         </div>
                                         <div class="text-[10px] text-gray-400 dark:text-gray-500 italic">
-                                            {{ $j->deskripsi }}</div>
+                                            {{ $j->deskripsi }}
+                                        </div>
                                     </td>
+
+                                    {{-- Kolom Debit --}}
                                     <td class="p-4 text-right font-bold text-gray-700 dark:text-gray-300">
-                                        Rp. {{ $j->posisi_dr_cr == 'dr' ? number_format($j->nominal, 0, ',', '.') : '-' }}
+                                        @if ($j->posisi_dr_cr == 'dr' && $j->nominal > 0)
+                                            Rp. {{ number_format($j->nominal, 0, ',', '.') }}
+                                        @else
+                                            -
+                                        @endif
                                     </td>
+
+                                    {{-- Kolom Kredit --}}
                                     <td class="p-4 text-right font-bold text-gray-700 dark:text-gray-300">
-                                        Rp. {{ $j->posisi_dr_cr == 'cr' ? number_format($j->nominal, 0, ',', '.') : '-' }}
+                                        @if ($j->posisi_dr_cr == 'cr' && $j->nominal > 0)
+                                            Rp. {{ number_format($j->nominal, 0, ',', '.') }}
+                                        @else
+                                            -
+                                        @endif
                                     </td>
                                 </tr>
                             @empty
@@ -213,5 +226,14 @@
 
             table.buttons().container().appendTo('#exportButtons');
         });
+
+        @if (session('error'))
+            Swal.fire({
+                icon: 'info', // 'info' lebih cocok untuk data kosong, 'error' untuk sistem meledak
+                title: 'Informasi Jurnal',
+                text: "{{ session('error') }}",
+                confirmButtonColor: '#4f46e5'
+            });
+        @endif
     </script>
 </x-app-layout>
