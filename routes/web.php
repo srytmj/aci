@@ -47,14 +47,17 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('kas-masuk', KasMasukController::class);
 
     Route::get('/api/proyek/{id}/termin', [App\Http\Controllers\KasMasukController::class, 'getTerminByProyek']);
-    
+
     Route::resource('kas-keluar', KasKeluarController::class);
 
     Route::resource('jurnal', JurnalUmumController::class);
 
     Route::post('/switch-role', function (Illuminate\Http\Request $request) {
+        // Simpan role baru ke session
         session(['active_role_id' => $request->id_akses]);
-        return back()->with('success', 'Akses dialihkan');
+
+        // Redirect ke halaman dashboard
+        return redirect()->route('dashboard')->with('success', 'Akses berhasil dialihkan!');
     })->name('switch.role');
 
 });
