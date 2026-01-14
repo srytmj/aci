@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AksesController;
+use App\Http\Controllers\LraController;
 use App\Http\Controllers\PemberiProyekController;
 use App\Http\Controllers\ProyekController;
 use App\Http\Controllers\TerminProyekController;
@@ -32,8 +33,10 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('users', UserController::class);
     Route::resource('akses', AksesController::class);
 
+    // Master Data
+    Route::resource('lra', LraController::class);
+    Route::get('/lra/laporan', [LraController::class, 'laporan'])->name('lra.laporan');
     Route::resource('pemberi', PemberiProyekController::class);
-
     Route::resource('proyek', ProyekController::class);
     Route::resource('termin', TerminProyekController::class);
     Route::resource('vendor', VendorController::class);

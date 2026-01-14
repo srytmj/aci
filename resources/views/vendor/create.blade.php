@@ -129,7 +129,7 @@
         @if (session('error') || $errors->any())
             Swal.fire({
                 icon: 'error',
-                title: 'Waduh!',
+                title: 'Error!',
                 text: "{{ session('error') ?? 'Ada data yang belum lengkap atau salah format.' }}",
                 confirmButtonColor: '#4f46e5'
             });

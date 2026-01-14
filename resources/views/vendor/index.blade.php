@@ -157,7 +157,7 @@
         @if (session('error') || $errors->any())
             Swal.fire({
                 icon: 'error',
-                title: 'Waduh!',
+                title: 'Error!',
                 text: "{{ session('error') ?? 'Ada masalah saat memproses data.' }}",
                 confirmButtonColor: '#4f46e5'
             });

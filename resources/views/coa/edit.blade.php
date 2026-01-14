@@ -115,7 +115,7 @@
                     $('#urutan-error').removeClass('hidden');
                     Swal.fire({
                         icon: 'error',
-                        title: 'Waduh!',
+                        title: 'Error!',
                         text: 'Urutan tampil nggak boleh 0 atau negatif ya.',
                         confirmButtonColor: '#f59e0b'
                     });

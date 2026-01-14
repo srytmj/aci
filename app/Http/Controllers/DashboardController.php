@@ -80,7 +80,7 @@ class DashboardController extends Controller
                 <script>
                     Swal.fire({
                         icon: 'error',
-                        title: 'Waduh!',
+                        title: 'Error!',
                         text: 'Terjadi kesalahan saat memuat dashboard: " . addslashes($e->getMessage()) . "',
                     });
                 </script>

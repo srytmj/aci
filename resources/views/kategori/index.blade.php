@@ -149,7 +149,7 @@
         @if (session('error'))
             Swal.fire({
                 icon: 'error',
-                title: 'WADUH!',
+                title: 'Error!',
                 text: "{{ session('error') }}",
                 confirmButtonColor: '#ef4444'
             });

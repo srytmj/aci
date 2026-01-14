@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration {
     /**
@@ -10,6 +11,22 @@ return new class extends Migration {
      */
     public function up(): void
     {
+        // Tabel LRA
+        Schema::create('lra', function (Blueprint $table) {
+            $table->id('id_lra');
+            $table->string('keterangan');
+            $table->integer('persentase');
+            $table->enum('jenis', ['pendapatan', 'pengeluaran']);
+            $table->timestamps();
+        });
+
+        DB::table('lra')->insert([
+            ['keterangan' => 'Modal', 'persentase' => '60', 'jenis' => 'pendapatan'],
+            ['keterangan' => 'Pendapatan Proyek', 'persentase' => '55', 'jenis' => 'pendapatan'],
+            ['keterangan' => 'Gaji Karyawan', 'persentase' => '5', 'jenis' => 'pengeluaran'],
+            ['keterangan' => 'Biaya Vendor', 'persentase' => '50', 'jenis' => 'pengeluaran'],
+        ]);
+
         // Tabel Pemberi Proyek
         Schema::create('pemberi_proyek', function (Blueprint $table) {
             $table->id('id_pemberi');
@@ -206,6 +223,7 @@ return new class extends Migration {
      */
     public function down(): void
     {
+        Schema::dropIfExists('lra');
         Schema::dropIfExists('proyek');
         Schema::dropIfExists('pemberi_proyek');
         Schema::dropIfExists('vendor');
