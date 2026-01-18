@@ -120,17 +120,101 @@ class KasKeluarController extends Controller
             return back()->withInput()->with('error', 'Gagal Simpan: ' . $e->getMessage());
         }
     }
+    public function edit($id)
+    {
+        $kas = DB::table('kas')->where('id_kas', $id)->first();
+        if (!$kas)
+            return redirect()->route('kas-keluar.index')->with('error', 'Data tidak ditemukan!');
 
+        // Filter kategori khusus arus keluar
+        $kategoriProyek = DB::table('kategori_kas')->where('arus', 'keluar')->where('jenis', 'proyek')->get();
+        $kategoriUmum = DB::table('kategori_kas')->where('arus', 'keluar')->where('jenis', 'non-proyek')->get();
+
+        $proyek = DB::table('proyek')->where('status', 'aktif')->get();
+        $vendor = DB::table('vendor')->get();
+        $metode = DB::table('metode_bayar')->get();
+
+        return view('kas_keluar.edit', compact('kas', 'kategoriProyek', 'kategoriUmum', 'proyek', 'vendor', 'metode'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'tanggal' => 'required|date',
+            'id_kategori' => 'required|exists:kategori_kas,id_kategori',
+            'id_metode_bayar' => 'required',
+            'nominal' => 'required|numeric|min:1',
+            'keterangan' => 'required',
+            'upload_bukti' => 'nullable|image|mimes:jpg,png,jpeg|max:2048',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $kas = DB::table('kas')->where('id_kas', $id)->first();
+            $kategori = DB::table('kategori_kas')->where('id_kategori', $request->id_kategori)->first();
+
+            if (!$kategori->id_coa_debit || !$kategori->id_coa_kredit) {
+                throw new \Exception("Mapping Akun (COA) belum diset pada kategori ini!");
+            }
+
+            $fileName = $kas->upload_bukti;
+            if ($request->hasFile('upload_bukti')) {
+                // Hapus file lama jika ada
+                if ($fileName && File::exists(public_path('uploads/kas/' . $fileName))) {
+                    File::delete(public_path('uploads/kas/' . $fileName));
+                }
+                $fileName = 'KK_' . time() . '.' . $request->upload_bukti->extension();
+                $request->upload_bukti->move(public_path('uploads/kas'), $fileName);
+            }
+
+            // 1. Update Tabel Kas
+            DB::table('kas')->where('id_kas', $id)->update([
+                'tanggal' => $request->tanggal,
+                'id_kategori' => $request->id_kategori,
+                'id_proyek' => $request->id_proyek ?: null,
+                'id_vendor' => $request->id_vendor ?: null,
+                'id_metode_bayar' => $request->id_metode_bayar,
+                'nominal' => $request->nominal,
+                'keterangan' => $request->keterangan,
+                'upload_bukti' => $fileName,
+                'updated_at' => now(),
+            ]);
+
+            // 2. Refresh Jurnal (Hapus yang lama, insert yang baru)
+            DB::table('jurnal_umum')->where('sumber_transaksi', 'Kas Keluar')->where('id_transaksi', $id)->delete();
+
+            $commonJurnal = [
+                'tanggal' => $request->tanggal,
+                'deskripsi' => "[$kas->no_form] $request->keterangan",
+                'sumber_transaksi' => 'Kas Keluar',
+                'id_transaksi' => $id,
+                'nominal' => $request->nominal,
+                'created_at' => now(),
+            ];
+
+            DB::table('jurnal_umum')->insert(array_merge($commonJurnal, ['id_coa' => $kategori->id_coa_debit, 'posisi_dr_cr' => 'dr']));
+            DB::table('jurnal_umum')->insert(array_merge($commonJurnal, ['id_coa' => $kategori->id_coa_kredit, 'posisi_dr_cr' => 'cr']));
+
+            DB::commit();
+            return redirect()->route('kas-keluar.index')->with('success', 'Transaksi Kas Keluar berhasil diperbarui.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal Update: ' . $e->getMessage());
+        }
+    }
     public function destroy($id)
     {
         DB::beginTransaction();
         try {
             $kas = DB::table('kas')->where('id_kas', $id)->first();
-            if (!$kas) throw new \Exception("Data tidak ditemukan!");
+            if (!$kas)
+                throw new \Exception("Data tidak ditemukan!");
 
             if ($kas->upload_bukti) {
                 $filePath = public_path('uploads/kas/' . $kas->upload_bukti);
-                if (File::exists($filePath)) File::delete($filePath);
+                if (File::exists($filePath))
+                    File::delete($filePath);
             }
 
             DB::table('jurnal_umum')->where('sumber_transaksi', 'Kas Keluar')->where('id_transaksi', $id)->delete();
