@@ -11,89 +11,6 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        // Tabel LRA
-        Schema::create('lra', function (Blueprint $table) {
-            $table->id('id_lra');
-            $table->string('keterangan');
-            $table->integer('persentase');
-            $table->enum('jenis', ['pendapatan', 'pengeluaran']);
-            $table->timestamps();
-        });
-
-        DB::table('lra')->insert([
-            ['keterangan' => 'Modal', 'persentase' => '60', 'jenis' => 'pendapatan'],
-            ['keterangan' => 'Pendapatan Proyek', 'persentase' => '55', 'jenis' => 'pendapatan'],
-            ['keterangan' => 'Gaji Karyawan', 'persentase' => '5', 'jenis' => 'pengeluaran'],
-            ['keterangan' => 'Biaya Vendor', 'persentase' => '50', 'jenis' => 'pengeluaran'],
-        ]);
-
-        // Tabel Pemberi Proyek
-        Schema::create('pemberi_proyek', function (Blueprint $table) {
-            $table->id('id_pemberi');
-            $table->string('jenis', 50); // Perorangan, Swasta, Pemerintah
-            $table->string('nama', 150);
-            $table->string('alamat', 255);
-            $table->string('penanggung_jawab', 255);
-            $table->string('no_telp', 20);
-            $table->string('email', 100);
-            $table->timestamps();
-        });
-
-        DB::table('pemberi_proyek')->insert([
-            ['jenis' => 'Pemerintah', 'nama' => 'Dinas PUPR Kota Serang', 'alamat' => 'Jl. Mayor Syafei No. 12, Kota Serang', 'penanggung_jawab' => 'Syarifudin, ST', 'no_telp' => '0812-3456-7890', 'email' => 'puprserang@serangkota.go.id'],
-            ['jenis' => 'Swasta', 'nama' => 'PT Maju Sejahtera Konstruksi', 'alamat' => 'Jl. Industri No. 88, Cilegon', 'penanggung_jawab' => 'Ahmad Rudi', 'no_telp' => '0813-9876-5520', 'email' => 'info@maju-sejahtera.co.id'],
-            ['jenis' => 'Perorangan', 'nama' => 'Bapak Hadi Sutrisno', 'alamat' => 'Jl. Trip Jamaksari No. 5, Serang', 'penanggung_jawab' => 'Hadi Sutrisno', 'no_telp' => '0812-2244-3344', 'email' => '-'],
-        ]);
-
-        // Tabel Proyek 
-        Schema::create('proyek', function (Blueprint $table) {
-            $table->id('id_proyek');
-            $table->string('nama', 150);
-            $table->foreignId('id_pemberi')->constrained('pemberi_proyek', 'id_pemberi')->cascadeOnDelete();
-            $table->decimal('nilai_kontrak', 18, 2);
-            $table->integer('jumlah_termin');
-            $table->date('tanggal_mulai');
-            $table->date('tanggal_selesai');
-            $table->string('status'); // aktif, non-aktif
-            $table->string('deskripsi', 255)->nullable();
-            $table->timestamps();
-        });
-
-        DB::table('proyek')->insert([
-            ['nama' => 'Proyek 1', 'id_pemberi' => 1, 'nilai_kontrak' => 1000000, 'jumlah_termin' => 1, 'tanggal_mulai' => '2026-01-01', 'tanggal_selesai' => '2026-01-31', 'status' => 'selesai', 'deskripsi' => 'Proyek 1'],
-            ['nama' => 'Proyek 2', 'id_pemberi' => 2, 'nilai_kontrak' => 2000000, 'jumlah_termin' => 2, 'tanggal_mulai' => '2026-01-01', 'tanggal_selesai' => '2026-02-28', 'status' => 'aktif', 'deskripsi' => 'Proyek 2'],
-            ['nama' => 'Proyek 3', 'id_pemberi' => 3, 'nilai_kontrak' => 3000000, 'jumlah_termin' => 3, 'tanggal_mulai' => '2026-01-01', 'tanggal_selesai' => '2026-03-31', 'status' => 'aktif', 'deskripsi' => 'Proyek 3'],
-        ]);
-
-        // Tabel Vendor
-        Schema::create('vendor', function (Blueprint $table) {
-            $table->id('id_vendor');
-            $table->string('nama', 150);
-            $table->string('alamat', 255);
-            $table->string('penanggung_jawab', 255);
-            $table->string('no_telp', 20);
-            $table->string('email', 100);
-            $table->timestamps();
-        });
-
-        DB::table('vendor')->insert([
-            ['nama' => 'CV Makmur Jaya', 'alamat' => 'Jl. Raya Serang No. 12, Banten', 'penanggung_jawab' => 'Budi Santoso', 'no_telp' => '081234567890', 'email' => 'cs@makmurjaya.com'],
-            ['nama' => 'UD Sumber Rezeki', 'alamat' => 'Jl. A. Yani No. 33, Serang', 'penanggung_jawab' => 'Dedi', 'no_telp' => '082233445566', 'email' => '-'],
-            ['nama' => 'Toko Bangunan “Pak Udin”', 'alamat' => 'Pasar Lama Serang, Banten', 'penanggung_jawab' => 'Udin', 'no_telp' => '081278889900', 'email' => '-'],
-            ['nama' => 'PT Beton Prima', 'alamat' => 'Kawasan Industri Cikande', 'penanggung_jawab' => 'Rita', 'no_telp' => '081299223344', 'email' => 'sales@betonprima.co.id'],
-        ]);
-
-        Schema::create('metode_bayar', function (Blueprint $table) {
-            $table->id('id_metode_bayar');
-            $table->string('nama_metode_bayar', 50);
-            $table->string('deskripsi', 255);
-            $table->timestamps();
-        });
-
-        DB::table('metode_bayar')->insert([
-            ['nama_metode_bayar' => 'Cash', 'deskripsi' => 'Cash'],
-            ['nama_metode_bayar' => 'Bank', 'deskripsi' => 'Bank'],
-        ]);
 
         Schema::create('kategori_kas', function (Blueprint $table) {
             $table->id('id_kategori'); // Satu PK untuk semua
@@ -186,6 +103,89 @@ return new class extends Migration {
                 'deskripsi' => 'Transportasi, ATK, listrik lapangan, dll.',
                 'created_at' => now(),
             ],
+        ]);
+
+        // Tabel LRA
+        Schema::create('lra', function (Blueprint $table) {
+            $table->id('id_lra');
+            $table->string('keterangan');
+            $table->integer('persentase');
+            $table->foreignId('id_kategori')->constrained('kategori_kas', 'id_kategori')->cascadeOnDelete();
+            $table->timestamps();
+        });
+
+        DB::table('lra')->insert([
+            ['keterangan' => 'Gaji Karyawan', 'persentase' => '60', 'id_kategori' => 8],
+            ['keterangan' => 'Biaya Operasional Proyek', 'persentase' => '5', 'id_kategori' => 6],
+            ['keterangan' => 'Biaya Material', 'persentase' => '15', 'id_kategori' => 5],
+        ]);
+
+        // Tabel Pemberi Proyek
+        Schema::create('pemberi_proyek', function (Blueprint $table) {
+            $table->id('id_pemberi');
+            $table->string('jenis', 50); // Perorangan, Swasta, Pemerintah
+            $table->string('nama', 150);
+            $table->string('alamat', 255);
+            $table->string('penanggung_jawab', 255);
+            $table->string('no_telp', 20);
+            $table->string('email', 100);
+            $table->timestamps();
+        });
+
+        DB::table('pemberi_proyek')->insert([
+            ['jenis' => 'Pemerintah', 'nama' => 'Dinas PUPR Kota Serang', 'alamat' => 'Jl. Mayor Syafei No. 12, Kota Serang', 'penanggung_jawab' => 'Syarifudin, ST', 'no_telp' => '0812-3456-7890', 'email' => 'puprserang@serangkota.go.id'],
+            ['jenis' => 'Swasta', 'nama' => 'PT Maju Sejahtera Konstruksi', 'alamat' => 'Jl. Industri No. 88, Cilegon', 'penanggung_jawab' => 'Ahmad Rudi', 'no_telp' => '0813-9876-5520', 'email' => 'info@maju-sejahtera.co.id'],
+            ['jenis' => 'Perorangan', 'nama' => 'Bapak Hadi Sutrisno', 'alamat' => 'Jl. Trip Jamaksari No. 5, Serang', 'penanggung_jawab' => 'Hadi Sutrisno', 'no_telp' => '0812-2244-3344', 'email' => '-'],
+        ]);
+
+        // Tabel Proyek 
+        Schema::create('proyek', function (Blueprint $table) {
+            $table->id('id_proyek');
+            $table->string('nama', 150);
+            $table->foreignId('id_pemberi')->constrained('pemberi_proyek', 'id_pemberi')->cascadeOnDelete();
+            $table->decimal('nilai_kontrak', 18, 2);
+            $table->integer('jumlah_termin');
+            $table->date('tanggal_mulai');
+            $table->date('tanggal_selesai');
+            $table->string('status'); // aktif, non-aktif
+            $table->string('deskripsi', 255)->nullable();
+            $table->timestamps();
+        });
+
+        DB::table('proyek')->insert([
+            ['nama' => 'Proyek 1', 'id_pemberi' => 1, 'nilai_kontrak' => 1000000, 'jumlah_termin' => 1, 'tanggal_mulai' => '2026-01-01', 'tanggal_selesai' => '2026-01-31', 'status' => 'selesai', 'deskripsi' => 'Proyek 1'],
+            ['nama' => 'Proyek 2', 'id_pemberi' => 2, 'nilai_kontrak' => 2000000, 'jumlah_termin' => 2, 'tanggal_mulai' => '2026-01-01', 'tanggal_selesai' => '2026-02-28', 'status' => 'aktif', 'deskripsi' => 'Proyek 2'],
+            ['nama' => 'Proyek 3', 'id_pemberi' => 3, 'nilai_kontrak' => 3000000, 'jumlah_termin' => 3, 'tanggal_mulai' => '2026-01-01', 'tanggal_selesai' => '2026-03-31', 'status' => 'aktif', 'deskripsi' => 'Proyek 3'],
+        ]);
+
+        // Tabel Vendor
+        Schema::create('vendor', function (Blueprint $table) {
+            $table->id('id_vendor');
+            $table->string('nama', 150);
+            $table->string('alamat', 255);
+            $table->string('penanggung_jawab', 255);
+            $table->string('no_telp', 20);
+            $table->string('email', 100);
+            $table->timestamps();
+        });
+
+        DB::table('vendor')->insert([
+            ['nama' => 'CV Makmur Jaya', 'alamat' => 'Jl. Raya Serang No. 12, Banten', 'penanggung_jawab' => 'Budi Santoso', 'no_telp' => '081234567890', 'email' => 'cs@makmurjaya.com'],
+            ['nama' => 'UD Sumber Rezeki', 'alamat' => 'Jl. A. Yani No. 33, Serang', 'penanggung_jawab' => 'Dedi', 'no_telp' => '082233445566', 'email' => '-'],
+            ['nama' => 'Toko Bangunan “Pak Udin”', 'alamat' => 'Pasar Lama Serang, Banten', 'penanggung_jawab' => 'Udin', 'no_telp' => '081278889900', 'email' => '-'],
+            ['nama' => 'PT Beton Prima', 'alamat' => 'Kawasan Industri Cikande', 'penanggung_jawab' => 'Rita', 'no_telp' => '081299223344', 'email' => 'sales@betonprima.co.id'],
+        ]);
+
+        Schema::create('metode_bayar', function (Blueprint $table) {
+            $table->id('id_metode_bayar');
+            $table->string('nama_metode_bayar', 50);
+            $table->string('deskripsi', 255);
+            $table->timestamps();
+        });
+
+        DB::table('metode_bayar')->insert([
+            ['nama_metode_bayar' => 'Cash', 'deskripsi' => 'Cash'],
+            ['nama_metode_bayar' => 'Bank', 'deskripsi' => 'Bank'],
         ]);
 
         Schema::create('tipe_termin', function (Blueprint $table) {

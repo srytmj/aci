@@ -156,6 +156,12 @@
                             (Akun)</a>
                     @endif
 
+                    @if ($hasAkses('all'))
+                        <a href="{{ route('kategori.index') }}"
+                            class="flex items-center py-2.5 pl-12 pr-4 text-sm {{ request()->routeIs('kategori.*') ? 'text-indigo-600 font-bold' : 'text-gray-500 hover:text-indigo-600' }}">Kategori
+                            Kas</a>
+                    @endif
+                    
                     @if ($hasAkses('all') || $hasAkses('coa'))
                         <a href="{{ route('lra.index') }}"
                             class="flex items-center py-2.5 pl-12 pr-4 text-sm {{ request()->routeIs('lra.*') ? 'text-indigo-600 font-bold' : 'text-gray-500 hover:text-indigo-600' }}">LRA
@@ -188,11 +194,6 @@
                 </button>
 
                 <div x-show="openMenu === 'transaksi'" x-collapse x-cloak class="mt-1 space-y-1">
-                    @if ($hasAkses('all'))
-                        <a href="{{ route('kategori.index') }}"
-                            class="flex items-center py-2.5 pl-12 pr-4 text-sm {{ request()->routeIs('kategori.*') ? 'text-indigo-600 font-bold' : 'text-gray-500 hover:text-indigo-600' }}">Kategori
-                            Kas</a>
-                    @endif
 
                     @if ($hasAkses('kas_masuk'))
                         <a href="{{ route('kas-masuk.index') }}"

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -8,37 +9,23 @@ class LraController extends Controller
 {
     public function index()
     {
-        $lras = DB::table('lra')->orderBy('jenis', 'asc')->get();
-        return view('lra.index', compact('lras'));
-    }
+        // Ambil data LRA beserta nama kategorinya
+        $lras = DB::table('lra')
+            ->leftJoin('kategori_kas', 'lra.id_kategori', '=', 'kategori_kas.id_kategori')
+            ->select('lra.*', 'kategori_kas.nama_kategori')
+            ->orderBy('lra.id_lra', 'asc')
+            ->get();
 
-    public function show(Request $request)
-    {
-        try {
-            $selectedProyek = $request->get('proyek_id');
+        // Ambil list kategori kas KELUAR dan PROYEK untuk dropdown
+        $listKategori = DB::table('kategori_kas')
+            ->where('arus', 'keluar')
+            ->where('jenis', 'proyek')
+            ->orderBy('nama_kategori', 'asc')
+            ->get();
 
-            // 1. Ambil list proyek untuk dropdown
-            $listProyek = DB::table('proyek')->orderBy('nama', 'asc')->get();
+        $totalPersentase = $lras->sum('persentase');
 
-            // 2. Hitung Anggaran (Nilai Kontrak)
-            $queryAnggaran = DB::table('proyek');
-            if ($selectedProyek) {
-                $queryAnggaran->where('id_proyek', $selectedProyek);
-            }
-            $totalAnggaranProyek = $queryAnggaran->sum('nilai_kontrak');
-
-            // 3. Ambil Master LRA
-            $masterLra = DB::table('lra')->get();
-            $dataLra = [
-                'pendapatan' => $masterLra->where('jenis', 'pendapatan'),
-                'pengeluaran' => $masterLra->where('jenis', 'pengeluaran'),
-            ];
-
-            return view('lra.laporan', compact('totalAnggaranProyek', 'dataLra', 'listProyek', 'selectedProyek'));
-
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Gagal memuat Laporan LRA: ' . $e->getMessage());
-        }
+        return view('lra.index', compact('lras', 'totalPersentase', 'listKategori'));
     }
 
     public function store(Request $request)
@@ -46,60 +33,133 @@ class LraController extends Controller
         try {
             $request->validate([
                 'keterangan' => 'required|string|max:255',
-                'persentase' => 'required|numeric|min:0|max:100',
-                'jenis' => 'required|in:pendapatan,pengeluaran',
+                'persentase' => 'required|numeric|min:0.01|max:100',
+                'id_kategori' => 'required|exists:kategori_kas,id_kategori',
             ]);
+
+            $totalSaatIni = DB::table('lra')->sum('persentase');
+
+            // Validasi agar total tidak lebih dari 100%
+            if (($totalSaatIni + $request->persentase) > 100) {
+                $sisa = 100 - $totalSaatIni;
+                return back()->withInput()->with('error', 'Gagal! Total alokasi anggaran melebihi 100%. Sisa yang tersedia: ' . $sisa . '%');
+            }
 
             DB::table('lra')->insert([
                 'keterangan' => $request->keterangan,
                 'persentase' => $request->persentase,
-                'jenis' => $request->jenis,
+                'id_kategori' => $request->id_kategori,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
 
-            return back()->with('success', 'Master LRA berhasil ditambahkan!');
+            return back()->with('success', 'Master Item LRA berhasil ditambahkan!');
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal menyimpan: ' . $e->getMessage());
+        }
+    }
+
+    // Tambahkan method ini di LraController
+    public function update(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'keterangan' => 'required|string|max:255',
+                'persentase' => 'required|numeric|min:0.01|max:100',
+                'id_kategori' => 'required|exists:kategori_kas,id_kategori',
+            ]);
+
+            // Hitung total persentase selain data yang sedang diedit
+            $totalLainnya = DB::table('lra')
+                ->where('id_lra', '!=', $id)
+                ->sum('persentase');
+
+            if (($totalLainnya + $request->persentase) > 100) {
+                $sisa = 100 - $totalLainnya;
+                return back()->with('error', 'Gagal Update! Total melebihi 100%. Sisa kuota: ' . $sisa . '%');
+            }
+
+            DB::table('lra')->where('id_lra', $id)->update([
+                'keterangan' => $request->keterangan,
+                'persentase' => $request->persentase,
+                'id_kategori' => $request->id_kategori,
+                'updated_at' => now(),
+            ]);
+
+            return back()->with('success', 'Data LRA berhasil diperbarui!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal memperbarui: ' . $e->getMessage());
         }
     }
 
     public function destroy($id)
     {
         try {
+            // Cari data berdasarkan ID
+            $lra = DB::table('lra')->where('id_lra', $id)->first();
+
+            if (!$lra) {
+                return redirect()->back()->with('error', 'Data tidak ditemukan atau sudah dihapus.');
+            }
+
+            // Proses hapus
             DB::table('lra')->where('id_lra', $id)->delete();
-            return back()->with('success', 'Data LRA berhasil dihapus!');
+
+            // Mengembalikan pesan sukses ke SweetAlert2 di Blade
+            return redirect()->back()->with('success', 'Item Struktur LRA berhasil dihapus!');
+
         } catch (\Exception $e) {
-            return back()->with('error', 'Gagal menghapus data.');
+            // Jika ada error (misal: data sedang digunakan di tabel lain/foreign key constraint)
+            // SweetAlert2 akan menangkap session error ini
+            return redirect()->back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
         }
     }
 
-    public function laporan(Request $request)
+    public function show(Request $request)
     {
         try {
             $selectedProyek = $request->get('proyek_id');
-
-            // 1. Ambil list proyek untuk dropdown
             $listProyek = DB::table('proyek')->orderBy('nama', 'asc')->get();
 
-            // 2. Hitung Anggaran (Nilai Kontrak)
-            $queryAnggaran = DB::table('proyek');
+            // Inisialisasi default
+            $dataLra = [];
+            $totalAnggaranProyek = 0;
+
             if ($selectedProyek) {
-                $queryAnggaran->where('id_proyek', $selectedProyek);
+                $proyek = DB::table('proyek')->where('id_proyek', $selectedProyek)->first();
+
+                if ($proyek) {
+                    $totalAnggaranProyek = $proyek->nilai_kontrak;
+
+                    // Ambil Master LRA
+                    $masterLra = DB::table('lra')->get();
+
+                    foreach ($masterLra as $item) {
+                        // 1. Hitung Anggaran (Persentase LRA x Nilai Kontrak)
+                        $nominalAnggaran = ($item->persentase / 100) * $totalAnggaranProyek;
+
+                        // 2. Hitung Realisasi (Sum nominal di tabel kas berdasarkan proyek & kategori)
+                        $realisasi = DB::table('kas')
+                            ->where('id_proyek', $selectedProyek)
+                            ->where('id_kategori', $item->id_kategori)
+                            ->sum('nominal');
+
+                        $dataLra[] = (object) [
+                            'keterangan' => $item->keterangan,
+                            'persentase' => $item->persentase,
+                            'anggaran' => $nominalAnggaran,
+                            'realisasi' => $realisasi,
+                            'selisih' => $nominalAnggaran - $realisasi,
+                        ];
+                    }
+                }
             }
-            $totalAnggaranProyek = $queryAnggaran->sum('nilai_kontrak');
 
-            // 3. Ambil Master LRA
-            $masterLra = DB::table('lra')->get();
-            $dataLra = [
-                'pendapatan' => $masterLra->where('jenis', 'pendapatan'),
-                'pengeluaran' => $masterLra->where('jenis', 'pengeluaran'),
-            ];
-
-            return view('lra.laporan', compact('totalAnggaranProyek', 'dataLra', 'listProyek', 'selectedProyek'));
+            return view('lra.laporan', compact('listProyek', 'selectedProyek', 'dataLra', 'totalAnggaranProyek'));
 
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Gagal memuat Laporan LRA: ' . $e->getMessage());
+            // Return SweetAlert2 sesuai permintaan awal
+            return redirect()->back()->with('error', 'Gagal memproses laporan: ' . $e->getMessage());
         }
     }
 }
