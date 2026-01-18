@@ -36,6 +36,7 @@ Route::middleware(['auth'])->group(function () {
     // Master Data
     Route::resource('lra', LraController::class);
     Route::get('/lra/laporan', [LraController::class, 'laporan'])->name('lra.laporan');
+    Route::get('/laba-rugi', [LraController::class, 'labarugi'])->name('lra.labarugi');
     Route::resource('pemberi', PemberiProyekController::class);
     Route::resource('proyek', ProyekController::class);
     Route::resource('termin', TerminProyekController::class);

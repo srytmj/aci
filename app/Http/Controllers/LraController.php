@@ -162,4 +162,56 @@ class LraController extends Controller
             return redirect()->back()->with('error', 'Gagal memproses laporan: ' . $e->getMessage());
         }
     }
+
+    public function labarugi(Request $request)
+    {
+        try {
+            $selectedProyek = $request->get('proyek_id');
+            $listProyek = DB::table('proyek')->orderBy('nama', 'asc')->get();
+
+            $data = null;
+
+            if ($selectedProyek) {
+                $proyek = DB::table('proyek')->where('id_proyek', $selectedProyek)->first();
+
+                if ($proyek) {
+                    // 1. PENDAPATAN & TARGET
+                    $nilaiKontrak = $proyek->nilai_kontrak;
+                    $targetLabaPersen = $proyek->target_laba; // pastikan kolom ini ada di table proyek
+                    $nominalTargetLaba = ($targetLabaPersen / 100) * $nilaiKontrak;
+
+                    // 2. BIAYA (ANGGARAN)
+                    // Anggaran Biaya = Nilai Kontrak - Target Laba
+                    $anggaranBiaya = $nilaiKontrak - $nominalTargetLaba;
+
+                    // 3. REALISASI BIAYA (Ambil dari total pengeluaran di tabel KAS)
+                    $realisasiBiaya = DB::table('kas')
+                        ->where('id_proyek', $selectedProyek)
+                        ->where('arus', 'keluar')
+                        ->sum('nominal');
+
+                    // 4. EFISIENSI & TOTAL LABA
+                    $efisiensiBiaya = $anggaranBiaya - $realisasiBiaya;
+                    $totalLabaAkhir = $nominalTargetLaba + $efisiensiBiaya;
+
+                    $data = (object) [
+                        'proyek' => $proyek,
+                        'nilai_kontrak' => $nilaiKontrak,
+                        'target_laba_persen' => $targetLabaPersen,
+                        'nominal_target_laba' => $nominalTargetLaba,
+                        'anggaran_biaya' => $anggaranBiaya,
+                        'realisasi_biaya' => $realisasiBiaya,
+                        'efisiensi_biaya' => $efisiensiBiaya,
+                        'total_laba_akhir' => $totalLabaAkhir,
+                        'persentase_laba_akhir' => ($totalLabaAkhir / $nilaiKontrak) * 100
+                    ];
+                }
+            }
+
+            return view('lra.laba_rugi', compact('listProyek', 'selectedProyek', 'data'));
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal memproses Laba Rugi: ' . $e->getMessage());
+        }
+    }
 }

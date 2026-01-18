@@ -144,6 +144,7 @@ return new class extends Migration {
             $table->string('nama', 150);
             $table->foreignId('id_pemberi')->constrained('pemberi_proyek', 'id_pemberi')->cascadeOnDelete();
             $table->decimal('nilai_kontrak', 18, 2);
+            $table->integer('target_laba')->default(0);
             $table->integer('jumlah_termin');
             $table->date('tanggal_mulai');
             $table->date('tanggal_selesai');
@@ -153,9 +154,9 @@ return new class extends Migration {
         });
 
         DB::table('proyek')->insert([
-            ['nama' => 'Proyek 1', 'id_pemberi' => 1, 'nilai_kontrak' => 1000000, 'jumlah_termin' => 1, 'tanggal_mulai' => '2026-01-01', 'tanggal_selesai' => '2026-01-31', 'status' => 'selesai', 'deskripsi' => 'Proyek 1'],
-            ['nama' => 'Proyek 2', 'id_pemberi' => 2, 'nilai_kontrak' => 2000000, 'jumlah_termin' => 2, 'tanggal_mulai' => '2026-01-01', 'tanggal_selesai' => '2026-02-28', 'status' => 'aktif', 'deskripsi' => 'Proyek 2'],
-            ['nama' => 'Proyek 3', 'id_pemberi' => 3, 'nilai_kontrak' => 3000000, 'jumlah_termin' => 3, 'tanggal_mulai' => '2026-01-01', 'tanggal_selesai' => '2026-03-31', 'status' => 'aktif', 'deskripsi' => 'Proyek 3'],
+            ['nama' => 'Proyek 1', 'id_pemberi' => 1, 'nilai_kontrak' => 1000000, 'target_laba' => 10, 'jumlah_termin' => 1, 'tanggal_mulai' => '2026-01-01', 'tanggal_selesai' => '2026-01-31', 'status' => 'selesai', 'deskripsi' => 'Proyek 1'],
+            ['nama' => 'Proyek 2', 'id_pemberi' => 2, 'nilai_kontrak' => 2000000, 'target_laba' => 15, 'jumlah_termin' => 2, 'tanggal_mulai' => '2026-01-01', 'tanggal_selesai' => '2026-02-28', 'status' => 'aktif', 'deskripsi' => 'Proyek 2'],
+            ['nama' => 'Proyek 3', 'id_pemberi' => 3, 'nilai_kontrak' => 3000000, 'target_laba' => 20, 'jumlah_termin' => 3, 'tanggal_mulai' => '2026-01-01', 'tanggal_selesai' => '2026-03-31', 'status' => 'aktif', 'deskripsi' => 'Proyek 3'],
         ]);
 
         // Tabel Vendor
